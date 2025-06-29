@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MaZi FieryFox</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Welcome to MaZi FieryFox</h1>
+  <div id="main-menu">
+    <p>Name: <strong>MURKY</strong></p>
+    <img src="assets/your_avatar.png" alt="Murky Avatar" width="200" /><br/>
+    <button onclick="startGame()">Start Game</button>
+    <button onclick="showCredits()">Credits</button>
+  </div>
+  <div id="game-screen" style="display:none">
+    <h2>Choose Your Path</h2>
+    <div id="menu-buttons">
+      <button onclick="openSection('map')">🗺️ Map</button>
+      <button onclick="openSection('tasks')">📋 Tasks</button>
+      <button onclick="openSection('companions')">💞 Companions</button>
+    </div>
+    <div id="map-section" style="display:none"><h3>World Map</h3><p>Map content will appear here.</p></div>
+    <div id="tasks-section" style="display:none">
+      <h3>Daily Tasks</h3>
+      <div id="task-list"><h4>Complete Tasks to Earn Coins</h4>
+        <ul>
+          <li><button onclick="completeTask(1)">🛏️ Make Bed (+1 Coin)</button></li>
+          <li><button onclick="completeTask(2)">💧 Drink Water (+2 Coins)</button></li>
+          <li><button onclick="completeTask(3)">📖 Read 10 min (+3 Coins)</button></li>
+        </ul>
+      </div>
+      <div id="custom-task">
+        <h4>Add a Custom Task</h4>
+        <input type="text" id="task-name" placeholder="Task description" />
+        <input type="number" id="task-reward" placeholder="Coins" min="1" max="99" />
+        <button onclick="addCustomTask()">Add Task</button>
+        <ul id="custom-task-list"></ul>
+      </div>
+      <div id="advisor-task">
+        <h4>Financial Advisor Task</h4>
+        <button onclick="makeClientCall()">📞 Make a Client Call</button>
+        <p id="call-counter-display">Calls made: 0 / 25</p>
+      </div>
+    </div>
+    <div id="companions-section" style="display:none"><h3>Your Companions</h3><p>Companion content will appear here.</p></div>
+    <div id="gacha-section" style="margin-top: 20px;">
+      <h3>🎲 Gacha Pull</h3>
+      <p>Coins: <span id="coin-count">10</span></p>
+      <button onclick="doGachaPull()">Pull (Cost: 1 Coin)</button>
+      <div id="gacha-result" style="margin-top: 10px;"></div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
