@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MaZi FieryFox RPG</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icon.png" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header id="top-bar">
+    <div class="player-avatar"></div>
+    <div class="player-info">
+      <span class="player-name">Murky</span>
+      <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+    </div>
+    <div class="coin-counter"><span id="coinCount">120</span> 🪙</div>
+  </header>
+
+  <main id="game-container">
+    <section id="map-section" class="main-section active">
+      <div class="map-parchment"></div>
+    </section>
+    <section id="tasks-section" class="main-section">
+      <h2>Daily Quests</h2>
+      <div class="task-list" id="taskList"></div>
+    </section>
+    <section id="companions-section" class="main-section">
+      <h2>Your Companions</h2>
+      <div class="companion-list"></div>
+    </section>
+    <section id="gacha-section" class="main-section">
+      <h2>Summon New Allies!</h2>
+      <div class="gacha-buttons">
+        <button class="gacha-button" data-count="1">Summon 1 (10🪙)</button>
+        <button class="gacha-button" data-count="5">Summon 5 (50🪙)</button>
+        <button class="gacha-button" data-count="10">Summon 10 (100🪙)</button>
+      </div>
+    </section>
+  </main>
+
+  <nav id="bottom-nav">
+    <button data-section="map-section" class="active">🗺️<span>Map</span></button>
+    <button data-section="tasks-section">📋<span>Tasks</span></button>
+    <button data-section="companions-section">💞<span>Companions</span></button>
+    <button data-section="gacha-section">🎴<span>Gacha</span></button>
+  </nav>
+  <button id="resetBtn" style="position:fixed;bottom:70px;right:20px;z-index:100;">Reset Progress</button>
+  <div id="modal-overlay" style="display:none;"></div>
+  <script src="script.js"></script>
+</body>
+</html>
