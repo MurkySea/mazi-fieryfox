@@ -137,7 +137,6 @@ function updateXPBar() {
   bar.style.width = pct + '%';
 }
 function resetTasksDaily() {
-  // Optional: you can call this once per day (not enforced here)
   setCompletedTasks([]);
   displayTasks();
 }
@@ -229,10 +228,18 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(() => circle.remove(), 700);
     });
   });
-  // Gacha
+  // Gacha with coins fix
   document.querySelectorAll('.gacha-button').forEach(btn => {
     btn.addEventListener('click', function() {
       const cnt = parseInt(btn.getAttribute('data-count'), 10) || 1;
+      const cost = cnt * 10;
+      let coins = getCoins();
+      if (coins < cost) {
+        alert("Not enough coins!");
+        return;
+      }
+      setCoins(coins - cost);
+      document.getElementById('coinCount').textContent = getCoins();
       performGacha(cnt);
     });
   });
@@ -251,4 +258,3 @@ document.addEventListener('DOMContentLoaded', function () {
   ensureInitialUnlock();
   displayTasks();
 });
-
