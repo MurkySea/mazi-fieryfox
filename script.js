@@ -299,3 +299,20 @@ document.addEventListener('DOMContentLoaded', function () {
   ensureInitialUnlock();
   displayTasks();
 });
+
+// TAB SWITCHING LOGIC
+const tabButtons = document.querySelectorAll('#bottom-nav button');
+const sections = document.querySelectorAll('.main-section');
+
+tabButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    // Remove "active" class from all buttons and sections
+    tabButtons.forEach(btn => btn.classList.remove('active'));
+    sections.forEach(sec => sec.classList.remove('active'));
+
+    // Add "active" class to clicked button and its target section
+    button.classList.add('active');
+    const targetId = button.getAttribute('data-section');
+    document.getElementById(targetId).classList.add('active');
+  });
+});
