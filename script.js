@@ -355,3 +355,79 @@ function formatRepeat(type) {
     default: return "";
   }
 }
+
+/******************************************************
+ 🧡 COMPANION BOND SYSTEM
+******************************************************/
+
+// 1. Bond tracking data
+const companionBonds = {
+  selene: { name: "Selene Graytail", bond: 0 },
+  nyx: { name: "Nyx Shadowtail", bond: 0 },
+  lilith: { name: "Lilith Flamesworn", bond: 0 },
+  felina: { name: "Felina Moonshade", bond: 0 },
+  // Add others as needed
+};
+
+// 2. Increase bond with a companion
+function increaseBond(companionId, amount = 1) {
+  if (!companionBonds[companionId]) return;
+
+  companionBonds[companionId].bond += amount;
+
+  console.log(
+    `${companionBonds[companionId].name}'s bond is now ${companionBonds[companionId].bond}`
+  );
+
+  // Trigger a bond event every 10 points
+  if (companionBonds[companionId].bond % 10 === 0) {
+    triggerBondEvent(companionId);
+  }
+}
+
+// 3. Trigger bond event (placeholder alert for now)
+// --- FLIRTY BOND EVENTS ---
+const bondQuotes = {
+  selene: [
+    "You've been amazing lately... want to slip away and watch the stars with me?",
+    "You always make me feel safe... and maybe a little hot under the collar too.",
+    "Your dedication turns me on more than I’d like to admit."
+  ],
+  nyx: [
+    "Keep looking at me like that and I might do something reckless.",
+    "You’ve earned more than a reward tonight… how about a little mischief?",
+    "I might be your shadow, but I’d rather be your secret."
+  ],
+  lilith: [
+    "Power is seductive… but you're dangerously addictive.",
+    "Burning passion suits you... want me to show you how I really feel?",
+    "If you keep this up, I won’t behave myself."
+  ],
+  felina: [
+    "You're the calm to my storm. Want to curl up together and purr?",
+    "Soft touches… long nights… I could get used to this.",
+    "Your gentle side drives me wild."
+  ]
+};
+
+function triggerBondEvent(companionId) {
+  const companion = companionBonds[companionId];
+  const name = companion.name;
+  const imagePath = `images/${companionId}.png`; // Must match filename
+  const quotePool = bondQuotes[companionId] || ["You’re amazing."];
+
+  // Pick a random flirty quote
+  const randomQuote = quotePool[Math.floor(Math.random() * quotePool.length)];
+
+  // Fill modal content
+  document.getElementById("bondPortrait").src = imagePath;
+  document.getElementById("bondName").textContent = name;
+  document.getElementById("bondDialogue").textContent = randomQuote;
+
+  // Show modal
+  document.getElementById("bondEventModal").classList.remove("hidden");
+}
+
+function closeBondModal() {
+  document.getElementById("bondEventModal").classList.add("hidden");
+}
