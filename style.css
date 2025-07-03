@@ -144,3 +144,74 @@ button {
 .main-section.active {
   display: block;
 }
+
+.task-category {
+  margin-bottom: 1.5rem;
+}
+
+.task-category h3 {
+  margin-bottom: 0.5rem;
+  color: #4d342f;
+}
+
+.task-list li {
+  background: #fff8ec;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+#addTaskBtn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #f4b860;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  color: #3d2b1f;
+  cursor: pointer;
+}
+
+/* Modal Styling */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-box {
+  background: #fffaf3;
+  padding: 1.5rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+
+.modal-box input,
+.modal-box select {
+  width: 100%;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.modal-box button {
+  margin: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.modal.hidden {
+  display: none;
+}

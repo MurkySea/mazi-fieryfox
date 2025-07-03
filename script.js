@@ -316,3 +316,42 @@ tabButtons.forEach(button => {
     document.getElementById(targetId).classList.add('active');
   });
 });
+
+// Task modal handlers
+document.getElementById("addTaskBtn").addEventListener("click", () => {
+  document.getElementById("taskModal").classList.remove("hidden");
+});
+
+function hideTaskModal() {
+  document.getElementById("taskModal").classList.add("hidden");
+}
+
+// Task creation logic
+function createTask() {
+  const name = document.getElementById("taskName").value;
+  const xp = document.getElementById("taskXP").value;
+  const sectionId = document.getElementById("taskTime").value;
+  const repeat = document.getElementById("taskRepeat").value;
+
+  if (!name || !xp) return;
+
+  const li = document.createElement("li");
+  li.textContent = `${name} (+${xp} XP) • ${formatRepeat(repeat)}`;
+
+  document.getElementById(sectionId).appendChild(li);
+
+  // Clear inputs and hide modal
+  document.getElementById("taskName").value = "";
+  document.getElementById("taskXP").value = "";
+  document.getElementById("taskRepeat").value = "daily";
+  document.getElementById("taskModal").classList.add("hidden");
+}
+
+function formatRepeat(type) {
+  switch (type) {
+    case "daily": return "🔁 Daily";
+    case "weekly": return "🔂 Weekly";
+    case "monthly": return "📆 Monthly";
+    default: return "";
+  }
+}

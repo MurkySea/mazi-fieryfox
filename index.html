@@ -31,10 +31,57 @@
 
     <!-- TASKS TAB -->
     <section id="tasks-section" class="main-section">
-      <h2>Daily Quests</h2>
-      <div class="task-list" id="taskList"></div>
-    </section>
+  <h2>Daily Quests</h2>
 
+  <!-- Task Lists -->
+  <div class="task-category">
+    <h3>🌅 Morning</h3>
+    <ul id="morningTasks" class="task-list">
+      <li>☀️ Brush teeth (+5 XP)</li>
+      <li>🧘 Stretch 5 min (+10 XP)</li>
+    </ul>
+  </div>
+
+  <div class="task-category">
+    <h3>🌞 Afternoon</h3>
+    <ul id="afternoonTasks" class="task-list">
+      <li>💧 Drink water (+10 XP)</li>
+      <li>📖 Read 15 mins (+15 XP)</li>
+    </ul>
+  </div>
+
+  <div class="task-category">
+    <h3>🌙 Evening</h3>
+    <ul id="eveningTasks" class="task-list">
+      <li>🍽️ Clean dishes (+10 XP)</li>
+      <li>✍️ Journal entry (+15 XP)</li>
+    </ul>
+  </div>
+
+  <!-- Add Task Button -->
+  <button id="addTaskBtn">➕ Add New Task</button>
+
+  <!-- Task Creation Modal -->
+  <div id="taskModal" class="modal hidden">
+    <div class="modal-box">
+      <h3>New Task</h3>
+      <input id="taskName" type="text" placeholder="Task name" />
+      <input id="taskXP" type="number" placeholder="XP amount" />
+      <select id="taskTime">
+        <option value="morningTasks">🌅 Morning</option>
+        <option value="afternoonTasks">🌞 Afternoon</option>
+        <option value="eveningTasks">🌙 Evening</option>
+      </select>
+      <select id="taskRepeat">
+       <option value="daily">🔁 Daily</option>
+        <option value="weekly">🔂 Weekly</option>
+        <option value="monthly">📆 Monthly</option>
+      </select>
+      <button onclick="createTask()">Add Task</button>
+      <button onclick="hideTaskModal()">Cancel</button>
+    </div>
+  </div>
+</section>
     <!-- COMPANIONS TAB -->
     <section id="companions-section" class="main-section">
       <h2>Your Companions</h2>
