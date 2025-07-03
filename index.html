@@ -30,6 +30,36 @@
     <section id="companions-section" class="main-section">
       <h2>Your Companions</h2>
       <div class="companion-list"></div>
+      <div id="companions-tab">
+  <h2>Your Companions</h2>
+  <div class="companion-list">
+    <!-- Clickable entries -->
+    <div class="companion-entry" onclick="showCard('selene')">
+      ⭐⭐ Selene Graytail<br>★ loyal
+    </div>
+    <div class="companion-entry" onclick="showCard('nyx')">
+      ⭐ Nyx Shadowtail<br>★ sly
+    </div>
+    <div class="companion-entry" onclick="showCard('lilith')">
+      ⭐⭐ Lilith Flamesworn<br>★ seductive
+    </div>
+    <div class="companion-entry" onclick="showCard('felina')">
+      ⭐ Felina Moonshade<br>★ gentle
+    </div>
+    <!-- Add more as needed -->
+  </div>
+
+  <!-- The Pop-up Character Card -->
+  <div id="companionModal" class="modal hidden">
+    <div class="modal-box">
+      <img id="cardImg" src="" alt="portrait" class="card-img">
+      <h3 id="cardName"></h3>
+      <p id="cardTitle"></p>
+      <p id="cardBio"></p>
+      <button onclick="hideCard()">Close</button>
+    </div>
+  </div>
+</div>
     </section>
     <section id="gacha-section" class="main-section">
       <h2>Summon New Allies!</h2>

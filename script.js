@@ -258,3 +258,42 @@ document.addEventListener('DOMContentLoaded', function () {
   ensureInitialUnlock();
   displayTasks();
 });
+const companions = {
+  selene: {
+    name: "Selene Graytail",
+    title: "Moonlit Guardian",
+    bio: "A steadfast and loyal ally who protects with quiet grace.",
+    image: "images/selene.png"
+  },
+  nyx: {
+    name: "Nyx Shadowtail",
+    title: "Whisper of the Night",
+    bio: "Cunning and sly, she moves like a shadow in moonlight.",
+    image: "images/nyx.png"
+  },
+  lilith: {
+    name: "Lilith Flamesworn",
+    title: "Emberheart Sorceress",
+    bio: "Her fiery presence is as dangerous as it is alluring.",
+    image: "images/lilith.png"
+  },
+  felina: {
+    name: "Felina Moonshade",
+    title: "Twilight Whisperer",
+    bio: "A gentle spirit who draws power from the stars.",
+    image: "images/felina.png"
+  }
+};
+
+function showCard(id) {
+  const data = companions[id];
+  document.getElementById("cardImg").src = data.image;
+  document.getElementById("cardName").textContent = data.name;
+  document.getElementById("cardTitle").textContent = data.title;
+  document.getElementById("cardBio").textContent = data.bio;
+  document.getElementById("companionModal").classList.remove("hidden");
+}
+
+function hideCard() {
+  document.getElementById("companionModal").classList.add("hidden");
+}
