@@ -9,7 +9,8 @@ const tasks = [
   { id: 4, text: "Finish a new quest", xp: 25 },
   { id: 5, text: "Read for 20 minutes", xp: 20 }
 ];
-// -- XP/coins progression logic --
+
+// -- XP / Coin Progression --
 function getXP() { return parseInt(localStorage.getItem('mazi_xp') || '0'); }
 function setXP(xp) { localStorage.setItem('mazi_xp', xp); }
 function getCoins() { return parseInt(localStorage.getItem('mazi_coins') || '120'); }
@@ -21,7 +22,8 @@ function getCompletedTasks() {
 function setCompletedTasks(arr) {
   localStorage.setItem('mazi_tasks', JSON.stringify(arr));
 }
-// Weighted random pick
+
+// -- Companion Data & Selection --
 function weightedRandomPick(items, weights) {
   let total = weights.reduce((a, b) => a + b, 0);
   let r = Math.random() * total;
@@ -31,11 +33,14 @@ function weightedRandomPick(items, weights) {
   }
   return items[items.length - 1];
 }
+
 function pickRandomByRarity(companions) {
   const weightList = companions.map(c => rarityWeights[c.Rarity?.trim() || 'Common'] || 1);
   return weightedRandomPick(companions, weightList);
 }
+
 let allCompanions = [];
+
 function fetchAllCompanions(callback) {
   fetch(sheetUrl)
     .then(res => res.text())
@@ -51,6 +56,8 @@ function fetchAllCompanions(callback) {
       if (callback) callback(companions);
     });
 }
+
+// -- Progress State --
 function getProgress() {
   let prog = JSON.parse(localStorage.getItem('mazi_gacha_progress') || '{}');
   if (!prog.unlocked) prog.unlocked = {};
@@ -58,6 +65,7 @@ function getProgress() {
   return prog;
 }
 function setProgress(obj) { localStorage.setItem('mazi_gacha_progress', JSON.stringify(obj)); }
+
 function ensureInitialUnlock() {
   fetchAllCompanions((companions) => {
     let prog = getProgress();
@@ -72,7 +80,8 @@ function ensureInitialUnlock() {
     displayCompanionsUI();
   });
 }
-// -- UI display --
+
+// -- Companion List Display --
 function displayCompanionsUI() {
   const list = document.querySelector('.companion-list');
   if (!list) return;
@@ -86,6 +95,7 @@ function displayCompanionsUI() {
         const imgUrl = (comp.ImageURL && comp.ImageURL.startsWith("http")) ? comp.ImageURL.trim() : 'companion_placeholder.png';
         const starCount = prog.stars[name] || 1;
         const stars = '⭐️'.repeat(starCount);
+
         const card = document.createElement('div');
         card.className = `companion-card ${rarity}`;
         card.innerHTML = `
@@ -96,12 +106,30 @@ function displayCompanionsUI() {
             <span class="rarity-badge">${rarity ? '★ ' + comp.Rarity : ''}</span>
           </div>
         `;
+        card.addEventListener('click', () => {
+          showCardFromData(comp, starCount);
+        });
+
         list.appendChild(card);
       }
     });
   });
 }
-// -- TASKS --
+
+// -- Companion Card Modal Logic --
+function showCardFromData(comp, stars = 1) {
+  document.getElementById("cardImg").src = (comp.ImageURL && comp.ImageURL.startsWith("http")) ? comp.ImageURL.trim() : 'companion_placeholder.png';
+  document.getElementById("cardName").textContent = comp.Name || comp['Companion Name'];
+  document.getElementById("cardTitle").textContent = comp.Title || comp['Title'] || '';
+  document.getElementById("cardBio").textContent = comp.Bio || comp['Bio'] || '';
+  document.getElementById("companionModal").classList.remove("hidden");
+}
+
+function hideCard() {
+  document.getElementById("companionModal").classList.add("hidden");
+}
+
+// -- Tasks Display --
 function displayTasks() {
   const container = document.getElementById('taskList');
   if (!container) return;
@@ -115,7 +143,6 @@ function displayTasks() {
       if (!completed.includes(t.id)) {
         completed.push(t.id);
         setCompletedTasks(completed);
-        // Animate
         div.classList.add('completed');
         addXP(t.xp);
       }
@@ -123,12 +150,14 @@ function displayTasks() {
     container.appendChild(div);
   });
 }
+
 function addXP(xp) {
   let cur = getXP();
   let newXP = cur + xp;
   setXP(newXP);
   updateXPBar();
 }
+
 function updateXPBar() {
   const bar = document.getElementById('xpFill');
   if (!bar) return;
@@ -136,11 +165,13 @@ function updateXPBar() {
   const pct = Math.min(100, (xp % 100));
   bar.style.width = pct + '%';
 }
+
 function resetTasksDaily() {
   setCompletedTasks([]);
   displayTasks();
 }
-// -- Gacha logic --
+
+// -- Gacha Logic --
 function performGacha(count) {
   fetchAllCompanions(companions => {
     let prog = getProgress();
@@ -155,13 +186,14 @@ function performGacha(count) {
       } else {
         prog.stars[name] = (prog.stars[name] || 1) + 1;
       }
-      results.push({companion, isNew, stars: prog.stars[name]});
+      results.push({ companion, isNew, stars: prog.stars[name] });
     }
     setProgress(prog);
     displayCompanionsUI();
     showGachaModalMulti(results);
   });
 }
+
 function showGachaModal(comp, isNew, stars) {
   const modal = document.getElementById('modal-overlay');
   modal.style.display = 'flex';
@@ -169,42 +201,42 @@ function showGachaModal(comp, isNew, stars) {
   modal.innerHTML = `<div class='modal-card' style="text-align:center;">
     <h2 style="color:${isNew ? '#41c75c' : '#cc9933'}">${isNew ? '🎉 NEW COMPANION!' : 'Duplicate!'}</h2>
     <div class='companion-avatar' style="width:90px;height:90px;margin:auto;background-image:url('${imgUrl}');"></div>
-    <h3 style="margin:0.7em 0 0.1em 0">${comp.Name || comp['Companion Name']}</h3>
+    <h3 style="margin:0.7em 0 0.1em 0">${comp.Name}</h3>
     <div style="margin-bottom:0.5em;font-size:1.6em">${'⭐️'.repeat(stars)}</div>
-    <div class="rarity-badge" style="display:inline-block">${comp.Rarity ? '★ ' + comp.Rarity : ''}</div>
-    <p style="margin-top:0.5em">${isNew ? 'Unlocked a new companion!' : `Progression: ${stars} ⭐️`}</p>
+    <div class="rarity-badge">${comp.Rarity ? '★ ' + comp.Rarity : ''}</div>
+    <p>${isNew ? 'Unlocked a new companion!' : `Progression: ${stars} ⭐️`}</p>
     <button class='close-modal'>Close</button>
   </div>`;
-  modal.querySelector('.close-modal').focus();
   modal.querySelector('.close-modal').onclick = () => { modal.style.display = 'none'; };
 }
+
 function showGachaModalMulti(results) {
   const modal = document.getElementById('modal-overlay');
   modal.style.display = 'flex';
   let html = `<div class='modal-card' style="text-align:center;"><h2>Summon Results</h2>`;
-  results.forEach(({companion, isNew, stars}) => {
+  results.forEach(({ companion, isNew, stars }) => {
     const imgUrl = (companion.ImageURL && companion.ImageURL.startsWith("http")) ? companion.ImageURL.trim() : 'companion_placeholder.png';
     html += `
       <div style="display:flex;align-items:center;gap:1em;justify-content:center;margin:1em 0;">
         <div class='companion-avatar' style="width:48px;height:48px;background-image:url('${imgUrl}');"></div>
         <div style="text-align:left;">
-          <span style="font-weight:bold">${companion.Name || companion['Companion Name']}</span><br>
+          <span style="font-weight:bold">${companion.Name}</span><br>
           <span style="font-size:1.4em;">${'⭐️'.repeat(stars)}</span>
-          <span class="rarity-badge" style="display:inline-block">${companion.Rarity ? '★ ' + companion.Rarity : ''}</span>
+          <span class="rarity-badge">${companion.Rarity ? '★ ' + companion.Rarity : ''}</span>
           <span style="color:${isNew ? '#41c75c' : '#cc9933'};font-weight:bold;margin-left:0.5em;">${isNew ? 'New!' : 'Dup.'}</span>
         </div>
       </div>`;
   });
   html += `<button class='close-modal'>Close</button></div>`;
   modal.innerHTML = html;
-  modal.querySelector('.close-modal').focus();
   modal.querySelector('.close-modal').onclick = () => { modal.style.display = 'none'; };
 }
-// -- NAVIGATION --
+
+// -- Navigation + Setup --
 document.addEventListener('DOMContentLoaded', function () {
-  // Tabs
   const navButtons = document.querySelectorAll('#bottom-nav button');
   const sections = document.querySelectorAll('.main-section');
+
   navButtons.forEach(btn => {
     btn.addEventListener('click', function () {
       navButtons.forEach(b => b.classList.remove('active'));
@@ -216,7 +248,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (secId === 'tasks-section') displayTasks();
     });
   });
-  // Ripple
+
+  // Ripple effect
   document.querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', function (e) {
       let circle = document.createElement('span');
@@ -228,9 +261,10 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(() => circle.remove(), 700);
     });
   });
-  // Gacha with coins fix
+
+  // Gacha button logic
   document.querySelectorAll('.gacha-button').forEach(btn => {
-    btn.addEventListener('click', function() {
+    btn.addEventListener('click', function () {
       const cnt = parseInt(btn.getAttribute('data-count'), 10) || 1;
       const cost = cnt * 10;
       let coins = getCoins();
@@ -243,57 +277,21 @@ document.addEventListener('DOMContentLoaded', function () {
       performGacha(cnt);
     });
   });
-  // XP bar and coins
+
+  // XP & Coin UI Init
   updateXPBar();
   document.getElementById('coinCount').textContent = getCoins();
-  // Reset
-  document.getElementById('resetBtn').onclick = function() {
+
+  // Reset Button
+  document.getElementById('resetBtn').onclick = function () {
     localStorage.removeItem('mazi_gacha_progress');
     localStorage.removeItem('mazi_xp');
     localStorage.removeItem('mazi_coins');
     localStorage.removeItem('mazi_tasks');
     setTimeout(() => location.reload(), 250);
   };
-  // First time setup
+
+  // Init
   ensureInitialUnlock();
   displayTasks();
 });
-const companions = {
-  selene: {
-    name: "Selene Graytail",
-    title: "Moonlit Guardian",
-    bio: "A steadfast and loyal ally who protects with quiet grace.",
-    image: "images/selene.png"
-  },
-  nyx: {
-    name: "Nyx Shadowtail",
-    title: "Whisper of the Night",
-    bio: "Cunning and sly, she moves like a shadow in moonlight.",
-    image: "images/nyx.png"
-  },
-  lilith: {
-    name: "Lilith Flamesworn",
-    title: "Emberheart Sorceress",
-    bio: "Her fiery presence is as dangerous as it is alluring.",
-    image: "images/lilith.png"
-  },
-  felina: {
-    name: "Felina Moonshade",
-    title: "Twilight Whisperer",
-    bio: "A gentle spirit who draws power from the stars.",
-    image: "images/felina.png"
-  }
-};
-
-function showCard(id) {
-  const data = companions[id];
-  document.getElementById("cardImg").src = data.image;
-  document.getElementById("cardName").textContent = data.name;
-  document.getElementById("cardTitle").textContent = data.title;
-  document.getElementById("cardBio").textContent = data.bio;
-  document.getElementById("companionModal").classList.remove("hidden");
-}
-
-function hideCard() {
-  document.getElementById("companionModal").classList.add("hidden");
-}
