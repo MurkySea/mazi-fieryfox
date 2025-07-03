@@ -133,9 +133,13 @@ function hideCard() {
 function displayTasks() {
   const container = document.getElementById('taskList');
   if (!container) return;
+
   container.innerHTML = '';
   const completed = getCompletedTasks();
+
   tasks.forEach(t => {
+    if (!shouldShowTaskToday(t)) return;
+
     const div = document.createElement('div');
     div.className = 'task-card' + (completed.includes(t.id) ? ' completed' : '');
     div.innerHTML = `${t.text} <span class="task-xp">+${t.xp} XP</span>`;

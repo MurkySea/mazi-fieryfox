@@ -113,3 +113,34 @@ button {
   align-items: center;
   gap: 0.3rem;
 }
+
+.task-card {
+  background: #fff;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.task-card.completed {
+  background: #d4edda;
+  text-decoration: line-through;
+  color: #3c763d;
+}
+
+.task-xp {
+  font-weight: bold;
+  color: #aa7e00;
+}
+
+.main-section {
+  display: none;
+}
+
+.main-section.active {
+  display: block;
+}
