@@ -3,7 +3,14 @@ const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2wIf1t5R2FnM
 const rarityWeights = { "Common": 70, "Rare": 25, "Epic": 5 };
 const RANK_UP_THRESHOLD = 3;
 const tasks = [
- function loadTasks() {
+  { id: 1, text: "Complete daily routine • 🔁 Daily", xp: 25 },
+  { id: 2, text: "Tidy up workspace • 🔁 Daily", xp: 15 },
+  { id: 3, text: "Drink 2L water • 🔁 Daily", xp: 10 },
+  { id: 4, text: "Finish a new quest • 🔂 Weekly", xp: 25 },
+  { id: 5, text: "Read for 20 minutes • 📆 Monthly", xp: 20 }
+];
+
+function loadTasks() {
   const saved = localStorage.getItem('mazi_custom_tasks');
   if (saved) {
     const parsed = JSON.parse(saved);
@@ -12,11 +19,9 @@ const tasks = [
 }
 
 function saveTasks() {
-  const custom = tasks.filter(t => t.id >= 1000); // Avoid saving built-in ones
+  const custom = tasks.filter(t => t.id >= 1000);
   localStorage.setItem('mazi_custom_tasks', JSON.stringify(custom));
 }
-
-];
 
 // -- XP / Coin Progression --
 function getXP() { return parseInt(localStorage.getItem('mazi_xp') || '0'); }
@@ -137,7 +142,7 @@ function hideCard() {
   document.getElementById("companionModal").classList.add("hidden");
 }
 
-// -- Tasks Display --
+// -- Task Display and Logic --
 function displayTasks() {
   const container = document.getElementById('taskList');
   if (!container) return;
@@ -146,8 +151,6 @@ function displayTasks() {
   const completed = getCompletedTasks();
 
   tasks.forEach(t => {
-    if (!shouldShowTaskToday(t)) return;
-
     const div = document.createElement('div');
     div.className = 'task-card' + (completed.includes(t.id) ? ' completed' : '');
     div.innerHTML = `${t.text} <span class="task-xp">+${t.xp} XP</span>`;
@@ -178,155 +181,7 @@ function updateXPBar() {
   bar.style.width = pct + '%';
 }
 
-function resetTasksDaily() {
-  setCompletedTasks([]);
-  displayTasks();
-}
-
-// -- Gacha Logic --
-function performGacha(count) {
-  fetchAllCompanions(companions => {
-    let prog = getProgress();
-    let results = [];
-    for (let i = 0; i < count; i++) {
-      const companion = pickRandomByRarity(companions);
-      let name = companion.Name || companion['Companion Name'];
-      let isNew = !prog.unlocked[name];
-      if (isNew) {
-        prog.unlocked[name] = true;
-        prog.stars[name] = 1;
-      } else {
-        prog.stars[name] = (prog.stars[name] || 1) + 1;
-      }
-      results.push({ companion, isNew, stars: prog.stars[name] });
-    }
-    setProgress(prog);
-    displayCompanionsUI();
-    showGachaModalMulti(results);
-  });
-}
-
-function showGachaModal(comp, isNew, stars) {
-  const modal = document.getElementById('modal-overlay');
-  modal.style.display = 'flex';
-  const imgUrl = (comp.ImageURL && comp.ImageURL.startsWith("http")) ? comp.ImageURL.trim() : 'companion_placeholder.png';
-  modal.innerHTML = `<div class='modal-card' style="text-align:center;">
-    <h2 style="color:${isNew ? '#41c75c' : '#cc9933'}">${isNew ? '🎉 NEW COMPANION!' : 'Duplicate!'}</h2>
-    <div class='companion-avatar' style="width:90px;height:90px;margin:auto;background-image:url('${imgUrl}');"></div>
-    <h3 style="margin:0.7em 0 0.1em 0">${comp.Name}</h3>
-    <div style="margin-bottom:0.5em;font-size:1.6em">${'⭐️'.repeat(stars)}</div>
-    <div class="rarity-badge">${comp.Rarity ? '★ ' + comp.Rarity : ''}</div>
-    <p>${isNew ? 'Unlocked a new companion!' : `Progression: ${stars} ⭐️`}</p>
-    <button class='close-modal'>Close</button>
-  </div>`;
-  modal.querySelector('.close-modal').onclick = () => { modal.style.display = 'none'; };
-}
-
-function showGachaModalMulti(results) {
-  const modal = document.getElementById('modal-overlay');
-  modal.style.display = 'flex';
-  let html = `<div class='modal-card' style="text-align:center;"><h2>Summon Results</h2>`;
-  results.forEach(({ companion, isNew, stars }) => {
-    const imgUrl = (companion.ImageURL && companion.ImageURL.startsWith("http")) ? companion.ImageURL.trim() : 'companion_placeholder.png';
-    html += `
-      <div style="display:flex;align-items:center;gap:1em;justify-content:center;margin:1em 0;">
-        <div class='companion-avatar' style="width:48px;height:48px;background-image:url('${imgUrl}');"></div>
-        <div style="text-align:left;">
-          <span style="font-weight:bold">${companion.Name}</span><br>
-          <span style="font-size:1.4em;">${'⭐️'.repeat(stars)}</span>
-          <span class="rarity-badge">${companion.Rarity ? '★ ' + companion.Rarity : ''}</span>
-          <span style="color:${isNew ? '#41c75c' : '#cc9933'};font-weight:bold;margin-left:0.5em;">${isNew ? 'New!' : 'Dup.'}</span>
-        </div>
-      </div>`;
-  });
-  html += `<button class='close-modal'>Close</button></div>`;
-  modal.innerHTML = html;
-  modal.querySelector('.close-modal').onclick = () => { modal.style.display = 'none'; };
-}
-
-// -- Navigation + Setup --
-document.addEventListener('DOMContentLoaded', function () {
-  const navButtons = document.querySelectorAll('#bottom-nav button');
-  const sections = document.querySelectorAll('.main-section');
-
-  navButtons.forEach(btn => {
-    btn.addEventListener('click', function () {
-      navButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const secId = btn.dataset.section;
-      sections.forEach(sec => sec.classList.remove('active'));
-      document.getElementById(secId).classList.add('active');
-      if (secId === 'companions-section') displayCompanionsUI();
-      if (secId === 'tasks-section') displayTasks();
-    });
-  });
-
-  // Ripple effect
-  document.querySelectorAll('button').forEach(btn => {
-    btn.addEventListener('click', function (e) {
-      let circle = document.createElement('span');
-      circle.className = 'ripple';
-      let rect = btn.getBoundingClientRect();
-      circle.style.left = (e.clientX - rect.left) + 'px';
-      circle.style.top = (e.clientY - rect.top) + 'px';
-      btn.appendChild(circle);
-      setTimeout(() => circle.remove(), 700);
-    });
-  });
-
-  // Gacha button logic
-  document.querySelectorAll('.gacha-button').forEach(btn => {
-    btn.addEventListener('click', function () {
-      const cnt = parseInt(btn.getAttribute('data-count'), 10) || 1;
-      const cost = cnt * 10;
-      let coins = getCoins();
-      if (coins < cost) {
-        alert("Not enough coins!");
-        return;
-      }
-      setCoins(coins - cost);
-      document.getElementById('coinCount').textContent = getCoins();
-      performGacha(cnt);
-    });
-  });
-
-  // XP & Coin UI Init
-  updateXPBar();
-  document.getElementById('coinCount').textContent = getCoins();
-
-  // Reset Button (includes custom tasks now)
-  document.getElementById('resetBtn').onclick = function () {
-    localStorage.removeItem('mazi_gacha_progress');
-    localStorage.removeItem('mazi_xp');
-    localStorage.removeItem('mazi_coins');
-    localStorage.removeItem('mazi_tasks');
-    localStorage.removeItem('mazi_custom_tasks');
-    setTimeout(() => location.reload(), 250);
-  };
-
-  // Init Sequence
-  loadTasks();          // ✅ Load saved custom tasks
-  ensureInitialUnlock(); 
-  displayTasks();       
-});
-// TAB SWITCHING LOGIC
-const tabButtons = document.querySelectorAll('#bottom-nav button');
-const sections = document.querySelectorAll('.main-section');
-
-tabButtons.forEach(button => {
-  button.addEventListener('click', () => {
-    // Remove "active" class from all buttons and sections
-    tabButtons.forEach(btn => btn.classList.remove('active'));
-    sections.forEach(sec => sec.classList.remove('active'));
-
-    // Add "active" class to clicked button and its target section
-    button.classList.add('active');
-    const targetId = button.getAttribute('data-section');
-    document.getElementById(targetId).classList.add('active');
-  });
-});
-
-// Task modal handlers
+// -- Create Task Logic --
 document.getElementById("addTaskBtn").addEventListener("click", () => {
   document.getElementById("taskModal").classList.remove("hidden");
 });
@@ -335,27 +190,6 @@ function hideTaskModal() {
   document.getElementById("taskModal").classList.add("hidden");
 }
 
-// Task creation logic
-function createTask() {
-function createTask() {
-  const name = document.getElementById("taskName").value.trim();
-  const xp = parseInt(document.getElementById("taskXP").value, 10);
-  const repeat = document.getElementById("taskRepeat").value;
-
-  if (!name || isNaN(xp)) return;
-
-  const id = Date.now(); // Unique ID
-  const newTask = { id, text: `${name} • ${formatRepeat(repeat)}`, xp };
-
-  tasks.push(newTask);
-  saveTasks();
-  displayTasks();
-
-  document.getElementById("taskName").value = "";
-  document.getElementById("taskXP").value = "";
-  document.getElementById("taskRepeat").value = "daily";
-  document.getElementById("taskModal").classList.add("hidden");
-}
 function createTask() {
   const name = document.getElementById("taskName").value.trim();
   const xp = parseInt(document.getElementById("taskXP").value.trim(), 10);
@@ -371,31 +205,9 @@ function createTask() {
   };
 
   tasks.push(newTask);
-  saveTasks();      // Save to localStorage
-  displayTasks();   // Refresh display
+  saveTasks();
+  displayTasks();
 
-  // Clear and close modal
-  document.getElementById("taskName").value = "";
-  document.getElementById("taskXP").value = "";
-  document.getElementById("taskModal").classList.add("hidden");
-}
-
-function formatRepeat(type) {
-  switch (type) {
-    case "daily": return "🔁 Daily";
-    case "weekly": return "🔂 Weekly";
-    case "monthly": return "📆 Monthly";
-    default: return "";
-  }
-}
-
-
-  const li = document.createElement("li");
-  li.textContent = `${name} (+${xp} XP) • ${formatRepeat(repeat)}`;
-
-  document.getElementById(sectionId).appendChild(li);
-
-  // Clear inputs and hide modal
   document.getElementById("taskName").value = "";
   document.getElementById("taskXP").value = "";
   document.getElementById("taskRepeat").value = "daily";
@@ -411,78 +223,11 @@ function formatRepeat(type) {
   }
 }
 
-/******************************************************
- 🧡 COMPANION BOND SYSTEM
-******************************************************/
-
-// 1. Bond tracking data
-const companionBonds = {
-  selene: { name: "Selene Graytail", bond: 0 },
-  nyx: { name: "Nyx Shadowtail", bond: 0 },
-  lilith: { name: "Lilith Flamesworn", bond: 0 },
-  felina: { name: "Felina Moonshade", bond: 0 },
-  // Add others as needed
-};
-
-// 2. Increase bond with a companion
-function increaseBond(companionId, amount = 1) {
-  if (!companionBonds[companionId]) return;
-
-  companionBonds[companionId].bond += amount;
-
-  console.log(
-    `${companionBonds[companionId].name}'s bond is now ${companionBonds[companionId].bond}`
-  );
-
-  // Trigger a bond event every 10 points
-  if (companionBonds[companionId].bond % 10 === 0) {
-    triggerBondEvent(companionId);
-  }
-}
-
-// 3. Trigger bond event (placeholder alert for now)
-// --- FLIRTY BOND EVENTS ---
-const bondQuotes = {
-  selene: [
-    "You've been amazing lately... want to slip away and watch the stars with me?",
-    "You always make me feel safe... and maybe a little hot under the collar too.",
-    "Your dedication turns me on more than I’d like to admit."
-  ],
-  nyx: [
-    "Keep looking at me like that and I might do something reckless.",
-    "You’ve earned more than a reward tonight… how about a little mischief?",
-    "I might be your shadow, but I’d rather be your secret."
-  ],
-  lilith: [
-    "Power is seductive… but you're dangerously addictive.",
-    "Burning passion suits you... want me to show you how I really feel?",
-    "If you keep this up, I won’t behave myself."
-  ],
-  felina: [
-    "You're the calm to my storm. Want to curl up together and purr?",
-    "Soft touches… long nights… I could get used to this.",
-    "Your gentle side drives me wild."
-  ]
-};
-
-function triggerBondEvent(companionId) {
-  const companion = companionBonds[companionId];
-  const name = companion.name;
-  const imagePath = `images/${companionId}.png`; // Must match filename
-  const quotePool = bondQuotes[companionId] || ["You’re amazing."];
-
-  // Pick a random flirty quote
-  const randomQuote = quotePool[Math.floor(Math.random() * quotePool.length)];
-
-  // Fill modal content
-  document.getElementById("bondPortrait").src = imagePath;
-  document.getElementById("bondName").textContent = name;
-  document.getElementById("bondDialogue").textContent = randomQuote;
-
-  // Show modal
-  document.getElementById("bondEventModal").classList.remove("hidden");
-}
-
-function closeBondModal() {
-  document.getElementById("bondEventModal").classList.add("hidden");
-}
+// -- INIT --
+document.addEventListener('DOMContentLoaded', function () {
+  loadTasks();
+  ensureInitialUnlock();
+  displayTasks();
+  updateXPBar();
+  document.getElementById('coinCount').textContent = getCoins();
+});
