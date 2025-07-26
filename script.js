@@ -2,8 +2,7 @@
 const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2wIf1t5R2FnMI5cEcLtz5zDUl584Hi6H-AuvKg5-EJqHXFYLB_JG4XncrjEmQK6lRkYAdZ08MBkX3/pub?output=csv';
 const rarityWeights = { "Common": 70, "Rare": 25, "Epic": 5 };
 const RANK_UP_THRESHOLD = 3;
-<<<<<<< HEAD
-=======
+
 const tasks = [
   { id: 1, text: "Complete daily routine • 🔁 Daily", xp: 25 },
   { id: 2, text: "Tidy up workspace • 🔁 Daily", xp: 15 },
@@ -25,7 +24,6 @@ function saveTasks() {
   localStorage.setItem('mazi_custom_tasks', JSON.stringify(custom));
 }
 
->>>>>>> 9089311ed3b3ac4b4e80ddef1777dea0673dcd16
 // -- XP / Coin Progression --
 function getXP() { return parseInt(localStorage.getItem('mazi_xp') || '0'); }
 function setXP(xp) { localStorage.setItem('mazi_xp', xp); }
@@ -37,19 +35,6 @@ function getCompletedTasks() {
 }
 function setCompletedTasks(arr) {
   localStorage.setItem('mazi_tasks', JSON.stringify(arr));
-}
-
-// -- Task Save/Load --
-function loadTasks() {
-  const saved = localStorage.getItem('mazi_custom_tasks');
-  if (saved) {
-    const parsed = JSON.parse(saved);
-    parsed.forEach(t => tasks.push(t));
-  }
-}
-function saveTasks() {
-  const custom = tasks.filter(t => t.id >= 1000);
-  localStorage.setItem('mazi_custom_tasks', JSON.stringify(custom));
 }
 
 // -- Companion Data & Selection --
@@ -157,7 +142,7 @@ function showCardFromData(comp, stars = 1) {
 function hideCard() {
   document.getElementById("companionModal").classList.add("hidden");
 }
-<<<<<<< HEAD
+
 function performGacha(count) {
   fetchAllCompanions(companions => {
     let prog = getProgress();
@@ -217,6 +202,7 @@ function showGachaModalMulti(results) {
   modal.innerHTML = html;
   modal.querySelector('.close-modal').onclick = () => { modal.style.display = 'none'; };
 }
+
 function displayTasks() {
   const container = document.getElementById('taskList');
   if (!container) return;
@@ -252,37 +238,6 @@ function addXP(xp) {
   let newXP = cur + xp;
   setXP(newXP);
   updateXPBar();
-=======
-
-// -- Task Display and Logic --
-function displayTasks() {
-  const container = document.getElementById('taskList');
-  if (!container) return;
-
-  container.innerHTML = '';
-  const completed = getCompletedTasks();
-
-  tasks.forEach(t => {
-    const div = document.createElement('div');
-    div.className = 'task-card' + (completed.includes(t.id) ? ' completed' : '');
-    div.innerHTML = `${t.text} <span class="task-xp">+${t.xp} XP</span>`;
-    div.onclick = () => {
-      if (!completed.includes(t.id)) {
-        completed.push(t.id);
-        setCompletedTasks(completed);
-        div.classList.add('completed');
-        addXP(t.xp);
-      }
-    };
-    container.appendChild(div);
-  });
-}
-
-function addXP(xp) {
-  let cur = getXP();
-  let newXP = cur + xp;
-  setXP(newXP);
-  updateXPBar();
 }
 
 function updateXPBar() {
@@ -304,7 +259,6 @@ function hideTaskModal() {
 
 function createTask() {
   const name = document.getElementById("taskName").value.trim();
-<<<<<<< HEAD
   const xp = parseInt(document.getElementById("taskXP").value.trim(), 10);
   const repeat = document.getElementById("taskRepeat").value;
 
@@ -332,11 +286,10 @@ function formatRepeat(type) {
     case "daily": return "🔁 Daily";
     case "weekly": return "🔂 Weekly";
     case "monthly": return "📆 Monthly";
->>>>>>> 9089311ed3b3ac4b4e80ddef1777dea0673dcd16
     default: return "";
   }
 }
-<<<<<<< HEAD
+
 const companionBonds = {
   selene: { name: "Selene Graytail", bond: 0 },
   nyx: { name: "Nyx Shadowtail", bond: 0 },
@@ -395,6 +348,7 @@ function triggerBondEvent(companionId) {
 function closeBondModal() {
   document.getElementById("bondEventModal").classList.add("hidden");
 }
+
 document.addEventListener('DOMContentLoaded', function () {
   const navButtons = document.querySelectorAll('#bottom-nav button');
   const sections = document.querySelectorAll('.main-section');
@@ -462,16 +416,3 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('coinCount').textContent = getCoins(); // Init coins
   displayTasks();            // Display tasks
 });
-
-=======
-
-// -- INIT --
-document.addEventListener('DOMContentLoaded', function () {
-  loadTasks();
-  ensureInitialUnlock();
-  displayTasks();
-  updateXPBar();
-  document.getElementById('coinCount').textContent = getCoins();
-});
-
->>>>>>> 9089311ed3b3ac4b4e80ddef1777dea0673dcd16
