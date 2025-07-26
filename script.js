@@ -356,6 +356,38 @@ function createTask() {
   document.getElementById("taskRepeat").value = "daily";
   document.getElementById("taskModal").classList.add("hidden");
 }
+function createTask() {
+  const name = document.getElementById("taskName").value.trim();
+  const xp = parseInt(document.getElementById("taskXP").value.trim(), 10);
+  const repeat = document.getElementById("taskRepeat").value;
+
+  if (!name || isNaN(xp)) return;
+
+  const id = Date.now(); // Unique timestamp-based ID
+  const newTask = {
+    id,
+    text: `${name} • ${formatRepeat(repeat)}`,
+    xp
+  };
+
+  tasks.push(newTask);
+  saveTasks();      // Save to localStorage
+  displayTasks();   // Refresh display
+
+  // Clear and close modal
+  document.getElementById("taskName").value = "";
+  document.getElementById("taskXP").value = "";
+  document.getElementById("taskModal").classList.add("hidden");
+}
+
+function formatRepeat(type) {
+  switch (type) {
+    case "daily": return "🔁 Daily";
+    case "weekly": return "🔂 Weekly";
+    case "monthly": return "📆 Monthly";
+    default: return "";
+  }
+}
 
 
   const li = document.createElement("li");
