@@ -3,11 +3,19 @@ const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2wIf1t5R2FnM
 const rarityWeights = { "Common": 70, "Rare": 25, "Epic": 5 };
 const RANK_UP_THRESHOLD = 3;
 const tasks = [
-  { id: 1, text: "Complete daily routine", xp: 25 },
-  { id: 2, text: "Tidy up workspace", xp: 15 },
-  { id: 3, text: "Drink 2L water", xp: 10 },
-  { id: 4, text: "Finish a new quest", xp: 25 },
-  { id: 5, text: "Read for 20 minutes", xp: 20 }
+ function loadTasks() {
+  const saved = localStorage.getItem('mazi_custom_tasks');
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    parsed.forEach(t => tasks.push(t));
+  }
+}
+
+function saveTasks() {
+  const custom = tasks.filter(t => t.id >= 1000); // Avoid saving built-in ones
+  localStorage.setItem('mazi_custom_tasks', JSON.stringify(custom));
+}
+
 ];
 
 // -- XP / Coin Progression --
@@ -286,20 +294,21 @@ document.addEventListener('DOMContentLoaded', function () {
   updateXPBar();
   document.getElementById('coinCount').textContent = getCoins();
 
-  // Reset Button
+  // Reset Button (includes custom tasks now)
   document.getElementById('resetBtn').onclick = function () {
     localStorage.removeItem('mazi_gacha_progress');
     localStorage.removeItem('mazi_xp');
     localStorage.removeItem('mazi_coins');
     localStorage.removeItem('mazi_tasks');
+    localStorage.removeItem('mazi_custom_tasks');
     setTimeout(() => location.reload(), 250);
   };
 
-  // Init
-  ensureInitialUnlock();
-  displayTasks();
+  // Init Sequence
+  loadTasks();          // ✅ Load saved custom tasks
+  ensureInitialUnlock(); 
+  displayTasks();       
 });
-
 // TAB SWITCHING LOGIC
 const tabButtons = document.querySelectorAll('#bottom-nav button');
 const sections = document.querySelectorAll('.main-section');
@@ -328,12 +337,26 @@ function hideTaskModal() {
 
 // Task creation logic
 function createTask() {
-  const name = document.getElementById("taskName").value;
-  const xp = document.getElementById("taskXP").value;
-  const sectionId = document.getElementById("taskTime").value;
+function createTask() {
+  const name = document.getElementById("taskName").value.trim();
+  const xp = parseInt(document.getElementById("taskXP").value, 10);
   const repeat = document.getElementById("taskRepeat").value;
 
-  if (!name || !xp) return;
+  if (!name || isNaN(xp)) return;
+
+  const id = Date.now(); // Unique ID
+  const newTask = { id, text: `${name} • ${formatRepeat(repeat)}`, xp };
+
+  tasks.push(newTask);
+  saveTasks();
+  displayTasks();
+
+  document.getElementById("taskName").value = "";
+  document.getElementById("taskXP").value = "";
+  document.getElementById("taskRepeat").value = "daily";
+  document.getElementById("taskModal").classList.add("hidden");
+}
+
 
   const li = document.createElement("li");
   li.textContent = `${name} (+${xp} XP) • ${formatRepeat(repeat)}`;
