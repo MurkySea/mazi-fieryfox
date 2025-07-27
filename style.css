@@ -279,3 +279,36 @@ button {
   display: block;
   font-size: 0.75rem;
 }
+
+/* Chat */
+#chat-section {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+}
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  background: #fff;
+  padding: 0.5rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+.chat-message {
+  margin: 0.3rem 0;
+}
+.chat-message.ai {
+  background: #f0f0f0;
+  padding: 0.4rem;
+  border-radius: 6px;
+}
+.chat-input {
+  display: flex;
+  gap: 0.5rem;
+}
+.chat-input input {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}

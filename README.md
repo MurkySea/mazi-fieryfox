@@ -12,6 +12,17 @@ npx http-server
 
 Then navigate to the provided local URL.
 
+## OpenAI Chat Setup
+
+The chat feature uses the OpenAI API. Before chatting, store your API key in the
+browser by opening the console and running:
+
+```javascript
+localStorage.setItem('openaiKey', 'YOUR_OPENAI_KEY');
+```
+
+Replace `YOUR_OPENAI_KEY` with your actual key.
+
 ## Saving Progress
 
 The game uses the browser's local storage to persist data. Custom tasks, completed tasks, earned XP, coins and unlocked companions are all stored locally so your progress remains even after refreshing or closing the tab.
