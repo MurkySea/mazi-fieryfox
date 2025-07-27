@@ -30,3 +30,7 @@ The game uses the browser's local storage to persist data. Custom tasks, complet
 ## Task Scheduling
 
 Tasks can be set to repeat on a daily, weekly or monthly cycle. Only tasks that are due for the current day will be displayed in the task list.
+
+## Chat Menu
+
+The Chat tab shows an inbox-style list of your unlocked companions. Each entry displays the companion's name and the most recent message from that conversation. Select a companion from the list to open the chat window and continue chatting.
