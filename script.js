@@ -245,6 +245,26 @@ function hideTaskModal() {
   document.getElementById("taskModal").classList.add("hidden");
 }
 
+function applyDarkMode(enabled) {
+  document.body.classList.toggle('dark-mode', enabled);
+  const toggleBtn = document.getElementById('darkModeToggle');
+  if (toggleBtn) {
+    toggleBtn.textContent = enabled ? '☀️ Light Mode' : '🌙 Dark Mode';
+  }
+  localStorage.setItem('mazi_dark_mode', enabled);
+}
+
+function initDarkMode() {
+  const enabled = localStorage.getItem('mazi_dark_mode') === 'true';
+  applyDarkMode(enabled);
+  const toggleBtn = document.getElementById('darkModeToggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      applyDarkMode(!document.body.classList.contains('dark-mode'));
+    });
+  }
+}
+
 
 const companionBonds = {
   selene: { name: "Selene Graytail", bond: 0 },
@@ -368,6 +388,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Initial setup
   loadTasks();               // Load saved custom tasks
   ensureInitialUnlock();     // Unlock a starting companion
+  initDarkMode();            // Apply saved theme
   updateXPBar();             // Fill XP bar
   document.getElementById('coinCount').textContent = getCoins(); // Init coins
   displayTasks();            // Display tasks
