@@ -67,6 +67,7 @@ function getProgress() {
   let prog = JSON.parse(localStorage.getItem('mazi_gacha_progress') || '{}');
   if (!prog.unlocked) prog.unlocked = {};
   if (!prog.stars) prog.stars = {};
+  if (!prog.bonds) prog.bonds = {};
   return prog;
 }
 function setProgress(obj) { localStorage.setItem('mazi_gacha_progress', JSON.stringify(obj)); }
@@ -128,6 +129,7 @@ function displayCompanionsUI() {
         const imgUrl = (comp.ImageURL && comp.ImageURL.startsWith("http")) ? comp.ImageURL.trim() : 'companion_placeholder.png';
         const starCount = prog.stars[name] || 1;
         const stars = '⭐️'.repeat(starCount);
+        const bondLevel = prog.bonds[name] || 0;
 
         const card = document.createElement('div');
         card.className = `companion-card ${rarity}`;
@@ -137,6 +139,7 @@ function displayCompanionsUI() {
             <span>${name}</span>
             <div style="margin: 0.25em 0 0.3em 0">${stars}</div>
             <span class="rarity-badge">${rarity ? '★ ' + comp.Rarity : ''}</span>
+            <div class="bond-level">Bond Lv ${bondLevel}</div>
           </div>
         `;
         card.addEventListener('click', () => {
@@ -155,6 +158,11 @@ function showCardFromData(comp, stars = 1) {
   document.getElementById("cardName").textContent = comp.Name || comp['Companion Name'];
   document.getElementById("cardTitle").textContent = comp.Title || comp['Title'] || '';
   document.getElementById("cardBio").textContent = comp.Bio || comp['Bio'] || '';
+  const prog = getProgress();
+  const name = comp.Name || comp['Companion Name'];
+  const bondLevel = prog.bonds[name] || 0;
+  const bondEl = document.getElementById("cardBond");
+  if (bondEl) bondEl.textContent = `Bond Lv ${bondLevel}`;
   document.getElementById("companionModal").classList.remove("hidden");
 }
 
@@ -257,6 +265,7 @@ function displayTasks() {
         setCompletedTasks(completed);
         div.classList.add('completed');
         addXP(t.xp);
+        handleTaskCompletion();
       }
     };
     container.appendChild(div);
@@ -296,6 +305,42 @@ function updateXPBar() {
     const level = Math.floor(xp / 100) + 1;
     levelEl.textContent = level;
   }
+}
+
+function updateMilestoneDisplay() {
+  const span = document.getElementById('taskMilestone');
+  if (span) {
+    const count = parseInt(localStorage.getItem('mazi_total_tasks_completed') || '0');
+    span.textContent = count;
+  }
+}
+
+function increaseRandomCompanionBond() {
+  const prog = getProgress();
+  const names = Object.keys(prog.unlocked);
+  if (names.length) {
+    const name = names[Math.floor(Math.random() * names.length)];
+    prog.bonds[name] = (prog.bonds[name] || 0) + 1;
+    setProgress(prog);
+  }
+}
+
+function handleTaskCompletion() {
+  let count = parseInt(localStorage.getItem('mazi_total_tasks_completed') || '0');
+  count += 1;
+  localStorage.setItem('mazi_total_tasks_completed', count);
+  increaseRandomCompanionBond();
+  if (document.querySelector('.companion-list')) {
+    displayCompanionsUI();
+  }
+  if (count % 10 === 0) {
+    const bonus = 20;
+    setCoins(getCoins() + bonus);
+    alert(`Milestone! ${count} tasks completed. +${bonus} coins`);
+    const coinEl = document.getElementById('coinCount');
+    if (coinEl) coinEl.textContent = getCoins();
+  }
+  updateMilestoneDisplay();
 }
 
 // -- Create Task Logic --
@@ -687,6 +732,7 @@ function init() {
   ensureInitialUnlock();     // Unlock a starting companion
   initDarkMode();            // Apply saved theme
   updateXPBar();             // Fill XP bar
+  updateMilestoneDisplay();  // Show completed tasks
   document.getElementById('coinCount').textContent = getCoins(); // Init coins
   displayTasks();            // Display tasks
   displayChatMenu();         // Prepare chat menu
