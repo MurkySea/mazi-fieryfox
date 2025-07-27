@@ -23,4 +23,12 @@ describe('shouldShowTaskToday', () => {
     expect(shouldShowTaskToday(task, first)).toBe(true);
     expect(shouldShowTaskToday(task, second)).toBe(false);
   });
+
+  test('once tasks show only on specified date', () => {
+    const task = { repeat: 'once', date: '2023-08-15' };
+    const day = new Date('2023-08-15');
+    const next = new Date('2023-08-16');
+    expect(shouldShowTaskToday(task, day)).toBe(true);
+    expect(shouldShowTaskToday(task, next)).toBe(false);
+  });
 });
