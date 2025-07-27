@@ -2,7 +2,20 @@
 const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2wIf1t5R2FnMI5cEcLtz5zDUl584Hi6H-AuvKg5-EJqHXFYLB_JG4XncrjEmQK6lRkYAdZ08MBkX3/pub?output=csv';
 const rarityWeights = { "Common": 70, "Rare": 25, "Epic": 5 };
 const RANK_UP_THRESHOLD = 3;
-const itemPool = ['Potion', 'Elixir', 'Revive'];
+// Items that can drop from the gacha. These will be added to the player's
+// inventory when rolled. Keeping the list here makes it easy to expand with
+// additional fantasy loot.
+const itemPool = [
+  'Potion',
+  'Elixir',
+  'Revive',
+  'Mystic Scroll',
+  'Dragon Scale',
+  'Phoenix Feather',
+  'Mana Crystal',
+  'Shadow Orb',
+  'Silver Key'
+];
 
 const TM = (typeof window !== 'undefined' && window.TaskManager)
   ? window.TaskManager
@@ -169,10 +182,11 @@ function hideCard() {
 }
 
 function performGacha(count) {
-  fetchAllCompanions(companions => {
-    let prog = getProgress();
-    let results = [];
-    let gainedItems = [];
+  return new Promise(resolve => {
+    fetchAllCompanions(companions => {
+      let prog = getProgress();
+      let results = [];
+      let gainedItems = [];
     for (let i = 0; i < count; i++) {
       const companion = pickRandomByRarity(companions);
       let name = companion.Name || companion['Companion Name'];
@@ -193,13 +207,17 @@ function performGacha(count) {
     }
     setProgress(prog);
     displayCompanionsUI();
-    showGachaModalMulti(results, gainedItems);
+      showGachaModalMulti(results, gainedItems);
+      resolve({ results, items: gainedItems });
+    });
   });
 }
 
 function showGachaModal(comp, isNew, stars) {
+  if (typeof document === 'undefined') return;
   closeChat();
   const modal = document.getElementById('modal-overlay');
+  if (!modal) return;
   modal.style.display = 'flex';
   const imgUrl = (comp.ImageURL && comp.ImageURL.startsWith("http")) ? comp.ImageURL.trim() : 'companion_placeholder.png';
   modal.innerHTML = `<div class='modal-card' style="text-align:center;">
@@ -215,8 +233,10 @@ function showGachaModal(comp, isNew, stars) {
 }
 
 function showGachaModalMulti(results, items = []) {
+  if (typeof document === 'undefined') return;
   closeChat();
   const modal = document.getElementById('modal-overlay');
+  if (!modal) return;
   modal.style.display = 'flex';
   let html = `<div class='modal-card' style="text-align:center;"><h2>Summon Results</h2>`;
   results.forEach(({ companion, isNew, stars }) => {
@@ -775,5 +795,11 @@ if (typeof window !== 'undefined' && document.getElementById('bottom-nav')) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { addItem, getInventory, shouldShowTaskToday };
+  // Export a subset of functions for unit testing in Node.
+  module.exports = {
+    addItem,
+    getInventory,
+    shouldShowTaskToday,
+    performGacha
+  };
 }
