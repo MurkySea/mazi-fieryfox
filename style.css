@@ -303,3 +303,32 @@ button {
   display: block;
   font-size: 0.75rem;
 }
+
+/* Chat Interface */
+#chatMenu button {
+  display: block;
+  margin: 0.5rem auto;
+  padding: 0.6rem 1rem;
+}
+#chatWindow.hidden {
+  display: none;
+}
+#chatHistory {
+  height: 200px;
+  overflow-y: auto;
+  background: #fffaf3;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+.chat-msg {
+  margin-bottom: 0.5rem;
+}
+.chat-msg.from-player {
+  text-align: right;
+  color: #1a73e8;
+}
+.chat-msg.from-companion {
+  text-align: left;
+  color: #3d2b1f;
+}
