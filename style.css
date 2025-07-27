@@ -291,6 +291,53 @@ button {
   font-size: 0.75rem;
 }
 
+/* Dark Mode Theme */
+body.dark-mode {
+  background: #222;
+  color: #e0e0e0;
+}
+
+body.dark-mode button {
+  background: #1e3a5f;
+  color: #fff;
+}
+
+body.dark-mode .task-card,
+body.dark-mode .task-list li,
+body.dark-mode .companion-card,
+body.dark-mode .modal-box,
+body.dark-mode #modal-overlay .modal-card,
+body.dark-mode #bondEventModal .modal-box {
+  background: #333;
+  color: #e0e0e0;
+}
+
+body.dark-mode .task-card.completed {
+  background: #375b48;
+  color: #b8ffb8;
+}
+
+body.dark-mode .xp-bar {
+  background: #444;
+}
+
+body.dark-mode .xp-fill {
+  background: #1e3a5f;
+}
+
+body.dark-mode #bottom-nav {
+  background: #1f1f1f;
+  border-top-color: #1e3a5f;
+}
+
+body.dark-mode #bottom-nav button {
+  color: #e0e0e0;
+}
+
+body.dark-mode #bottom-nav button.active {
+  border-top-color: #3d6fb4;
+}
+
 /* Map Background */
 #map-section {
   text-align: center;
