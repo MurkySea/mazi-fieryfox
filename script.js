@@ -3,26 +3,8 @@ const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2wIf1t5R2FnM
 const rarityWeights = { "Common": 70, "Rare": 25, "Epic": 5 };
 const RANK_UP_THRESHOLD = 3;
 
-const tasks = [
-  { id: 1, text: "Complete daily routine • 🔁 Daily", xp: 25 },
-  { id: 2, text: "Tidy up workspace • 🔁 Daily", xp: 15 },
-  { id: 3, text: "Drink 2L water • 🔁 Daily", xp: 10 },
-  { id: 4, text: "Finish a new quest • 🔂 Weekly", xp: 25 },
-  { id: 5, text: "Read for 20 minutes • 📆 Monthly", xp: 20 }
-];
-
-function loadTasks() {
-  const saved = localStorage.getItem('mazi_custom_tasks');
-  if (saved) {
-    const parsed = JSON.parse(saved);
-    parsed.forEach(t => tasks.push(t));
-  }
-}
-
-function saveTasks() {
-  const custom = tasks.filter(t => t.id >= 1000);
-  localStorage.setItem('mazi_custom_tasks', JSON.stringify(custom));
-}
+const { tasks, loadTasks, saveTasks, createTask, formatRepeat } = window.TaskManager;
+window.createTask = createTask;
 
 // -- XP / Coin Progression --
 function getXP() { return parseInt(localStorage.getItem('mazi_xp') || '0'); }
@@ -215,7 +197,13 @@ function displayTasks() {
 
     const div = document.createElement('div');
     div.className = 'task-card' + (completed.includes(t.id) ? ' completed' : '');
-    div.innerHTML = `${t.text} <span class="task-xp">+${t.xp} XP</span>`;
+    const textSpan = document.createElement('span');
+    textSpan.textContent = t.text;
+    const xpSpan = document.createElement('span');
+    xpSpan.className = 'task-xp';
+    xpSpan.textContent = `+${t.xp} XP`;
+    div.appendChild(textSpan);
+    div.appendChild(xpSpan);
     div.onclick = () => {
       if (!completed.includes(t.id)) {
         completed.push(t.id);
@@ -246,6 +234,12 @@ function updateXPBar() {
   const xp = getXP();
   const pct = Math.min(100, (xp % 100));
   bar.style.width = pct + '%';
+
+  const levelEl = document.getElementById('playerLevel');
+  if (levelEl) {
+    const level = Math.floor(xp / 100) + 1;
+    levelEl.textContent = level;
+  }
 }
 
 // -- Create Task Logic --
@@ -257,38 +251,26 @@ function hideTaskModal() {
   document.getElementById("taskModal").classList.add("hidden");
 }
 
-function createTask() {
-  const name = document.getElementById("taskName").value.trim();
-  const xp = parseInt(document.getElementById("taskXP").value.trim(), 10);
-  const repeat = document.getElementById("taskRepeat").value;
-
-  if (!name || isNaN(xp)) return;
-
-  const id = Date.now(); // Unique timestamp-based ID
-  const newTask = {
-    id,
-    text: `${name} • ${formatRepeat(repeat)}`,
-    xp
-  };
-
-  tasks.push(newTask);
-  saveTasks();
-  displayTasks();
-
-  document.getElementById("taskName").value = "";
-  document.getElementById("taskXP").value = "";
-  document.getElementById("taskRepeat").value = "daily";
-  document.getElementById("taskModal").classList.add("hidden");
+function applyDarkMode(enabled) {
+  document.body.classList.toggle('dark-mode', enabled);
+  const toggleBtn = document.getElementById('darkModeToggle');
+  if (toggleBtn) {
+    toggleBtn.textContent = enabled ? '☀️ Light Mode' : '🌙 Dark Mode';
+  }
+  localStorage.setItem('mazi_dark_mode', enabled);
 }
 
-function formatRepeat(type) {
-  switch (type) {
-    case "daily": return "🔁 Daily";
-    case "weekly": return "🔂 Weekly";
-    case "monthly": return "📆 Monthly";
-    default: return "";
+function initDarkMode() {
+  const enabled = localStorage.getItem('mazi_dark_mode') === 'true';
+  applyDarkMode(enabled);
+  const toggleBtn = document.getElementById('darkModeToggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      applyDarkMode(!document.body.classList.contains('dark-mode'));
+    });
   }
 }
+
 
 const companionBonds = {
   selene: { name: "Selene Graytail", bond: 0 },
@@ -320,6 +302,52 @@ const bondQuotes = {
   ]
 };
 
+// -- Chatting with Companions --
+async function sendMessageToChatGPT(companionId, message) {
+  const apiKey = localStorage.getItem('openaiKey');
+  if (!apiKey) {
+    alert('OpenAI API key not found');
+    return '';
+  }
+
+  const compData = companionBonds[companionId] || { name: companionId };
+  const persona = `You are ${compData.name}, a companion in the MaZi FieryFox RPG. Respond concisely and stay in character.`;
+
+  const payload = {
+    model: 'gpt-3.5-turbo',
+    messages: [
+      { role: 'system', content: persona },
+      { role: 'user', content: message }
+    ]
+  };
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content?.trim() || '';
+  } catch (err) {
+    console.error(err);
+    return '';
+  }
+}
+
+function addChatMessage(role, text) {
+  const container = document.getElementById('chatMessages');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'chat-message ' + (role === 'ai' ? 'ai' : '');
+  div.textContent = text;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
 function increaseBond(companionId, amount = 1) {
   if (!companionBonds[companionId]) return;
 
@@ -349,6 +377,110 @@ function closeBondModal() {
   document.getElementById("bondEventModal").classList.add("hidden");
 }
 
+let currentChatCompanion = null;
+let chatLogs = JSON.parse(localStorage.getItem('mazi_chat_logs') || '{}');
+
+function displayChatMenu() {
+  const menu = document.getElementById('chatMenu');
+  const windowEl = document.getElementById('chatWindow');
+  if (!menu || !windowEl) return;
+  menu.style.display = 'block';
+  windowEl.classList.add('hidden');
+  menu.innerHTML = '';
+  fetchAllCompanions(comps => {
+    const prog = getProgress();
+    const unlocked = comps.filter(c => prog.unlocked[c.Name || c['Companion Name']]);
+    if (unlocked.length === 0) {
+      menu.textContent = 'No companions unlocked yet.';
+      return;
+    }
+    unlocked.forEach(c => {
+      const name = c.Name || c['Companion Name'];
+      const btn = document.createElement('button');
+      btn.textContent = name;
+      btn.onclick = () => openChat(c);
+      menu.appendChild(btn);
+    });
+  });
+}
+
+function openChat(comp) {
+  currentChatCompanion = comp;
+  const menu = document.getElementById('chatMenu');
+  const windowEl = document.getElementById('chatWindow');
+  const history = document.getElementById('chatHistory');
+  if (!menu || !windowEl || !history) return;
+  menu.style.display = 'none';
+  windowEl.classList.remove('hidden');
+  history.innerHTML = '';
+  const key = comp.Name || comp['Companion Name'];
+  const log = chatLogs[key] || [];
+  if (log.length === 0) {
+    const greet = `Hello, I'm ${comp.Name}. ${comp.Personality}`;
+    log.push({ s: comp.Name, t: greet });
+  }
+  log.forEach(entry => addChatMessage(entry.s, entry.t));
+}
+
+function closeChat() {
+  const menu = document.getElementById('chatMenu');
+  const windowEl = document.getElementById('chatWindow');
+  if (currentChatCompanion) {
+    const key = currentChatCompanion.Name || currentChatCompanion['Companion Name'];
+    chatLogs[key] = Array.from(document.querySelectorAll('#chatHistory .chat-msg')).map(el => ({
+      s: el.classList.contains('from-player') ? 'You' : key,
+      t: el.textContent
+    }));
+    localStorage.setItem('mazi_chat_logs', JSON.stringify(chatLogs));
+  }
+  currentChatCompanion = null;
+  if (menu) menu.style.display = 'block';
+  if (windowEl) windowEl.classList.add('hidden');
+}
+
+function addChatMessage(sender, text) {
+  const history = document.getElementById('chatHistory');
+  if (!history) return;
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + (sender === 'You' ? 'from-player' : 'from-companion');
+  div.textContent = text;
+  history.appendChild(div);
+  history.scrollTop = history.scrollHeight;
+  if (currentChatCompanion) {
+    const key = currentChatCompanion.Name || currentChatCompanion['Companion Name'];
+    if (!chatLogs[key]) chatLogs[key] = [];
+    chatLogs[key].push({ s: sender, t: text });
+  }
+}
+
+function generateChatReply(comp) {
+  const pers = comp.Personality || '';
+  const traits = comp['Character Traits'] || comp.CharacterTraits || '';
+  const opts = [
+    `As someone who's ${pers.toLowerCase()}, I can relate.`,
+    `My ${traits.toLowerCase()} often help in times like these.`,
+    `I'm feeling ${pers.split(',')[0].toLowerCase()} today.`,
+    `Those ${traits.split(',')[0].toLowerCase()} skills might come in handy.`
+  ];
+  return opts[Math.floor(Math.random() * opts.length)];
+}
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+  const msg = input.value.trim();
+  if (!msg) return;
+  addChatMessage('You', msg);
+  input.value = '';
+  if (currentChatCompanion) {
+    const reply = generateChatReply(currentChatCompanion);
+    setTimeout(() => {
+      addChatMessage(currentChatCompanion.Name, reply);
+      localStorage.setItem('mazi_chat_logs', JSON.stringify(chatLogs));
+    }, 500);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   const navButtons = document.querySelectorAll('#bottom-nav button');
   const sections = document.querySelectorAll('.main-section');
@@ -362,6 +494,7 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById(secId).classList.add('active');
       if (secId === 'companions-section') displayCompanionsUI();
       if (secId === 'tasks-section') displayTasks();
+      if (secId === 'chat-section') displayChatMenu();
     });
   });
 
@@ -394,9 +527,35 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  // Chat send button
+  const sendBtn = document.getElementById('sendChatBtn');
+  if (sendBtn) {
+    sendBtn.addEventListener('click', async () => {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      addChatMessage('user', text);
+      input.value = '';
+      const reply = await sendMessageToChatGPT('selene', text);
+      if (reply) addChatMessage('ai', reply);
+    });
+  }
+
   // Add Task Button
   document.getElementById("addTaskBtn").addEventListener("click", () => {
     document.getElementById("taskModal").classList.remove("hidden");
+  });
+
+  const sendBtn = document.getElementById('sendChatBtn');
+  const closeBtn = document.getElementById('closeChatBtn');
+  if (sendBtn) sendBtn.addEventListener('click', sendChat);
+  if (closeBtn) closeBtn.addEventListener('click', closeChat);
+  const chatInput = document.getElementById('chatInput');
+  if (chatInput) chatInput.addEventListener('keypress', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendChat();
+    }
   });
 
   // Reset Button
@@ -412,7 +571,9 @@ document.addEventListener('DOMContentLoaded', function () {
   // Initial setup
   loadTasks();               // Load saved custom tasks
   ensureInitialUnlock();     // Unlock a starting companion
+  initDarkMode();            // Apply saved theme
   updateXPBar();             // Fill XP bar
   document.getElementById('coinCount').textContent = getCoins(); // Init coins
   displayTasks();            // Display tasks
+  displayChatMenu();         // Prepare chat menu
 });

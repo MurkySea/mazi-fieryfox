@@ -1,6 +1,6 @@
 # MaZi FieryFox RPG
 
-MaZi FieryFox is a lightweight browser RPG prototype. It features a simple task list, companions that can be unlocked via a gacha system, and a basic XP and coin economy.
+MaZi FieryFox is a lightweight browser RPG prototype. It features a simple task list, companions that can be unlocked via a gacha system, a basic XP and coin economy, and a level system that increases as you complete tasks.
 
 ## Getting Started
 
@@ -11,6 +11,17 @@ npx http-server
 ```
 
 Then navigate to the provided local URL.
+
+## OpenAI Chat Setup
+
+The chat feature uses the OpenAI API. Before chatting, store your API key in the
+browser by opening the console and running:
+
+```javascript
+localStorage.setItem('openaiKey', 'YOUR_OPENAI_KEY');
+```
+
+Replace `YOUR_OPENAI_KEY` with your actual key.
 
 ## Saving Progress
 

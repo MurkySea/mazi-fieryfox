@@ -14,6 +14,7 @@
     <div class="player-avatar"></div>
     <div class="player-info">
       <span class="player-name">Murky</span>
+      <span class="player-level">Lvl <span id="playerLevel">1</span></span>
       <div class="xp-bar">
         <div class="xp-fill" id="xpFill"></div>
       </div>
@@ -21,6 +22,7 @@
     <div class="coin-counter">
       <span id="coinCount">120</span> 🪙
     </div>
+    <button id="darkModeToggle" class="mode-toggle">🌙 Dark Mode</button>
   </header>
 
   <main id="game-container">
@@ -86,6 +88,34 @@
         <button class="gacha-button" data-count="10">Summon 10 (100🪙)</button>
       </div>
     </section>
+    <!-- CHAT TAB -->
+    <section id="chat-section" class="main-section">
+      <div id="chatMessages" class="chat-messages"></div>
+      <div class="chat-input">
+        <input type="text" id="chatInput" placeholder="Type a message..." />
+        <button id="sendChatBtn">Send</button>
+    <section id="gacha-section" class="main-section">
+      <h2>Summon New Allies!</h2>
+      <div class="gacha-buttons">
+        <button class="gacha-button" data-count="1">Summon 1 (10🪙)</button>
+        <button class="gacha-button" data-count="5">Summon 5 (50🪙)</button>
+        <button class="gacha-button" data-count="10">Summon 10 (100🪙)</button>
+      </div>
+    </section>
+
+    <!-- CHAT TAB -->
+    <section id="chat-section" class="main-section">
+      <h2>Chat</h2>
+      <div id="chatMenu">Select a companion to chat with.</div>
+      <div id="chatWindow" class="hidden">
+        <div id="chatHistory"></div>
+        <input id="chatInput" type="text" placeholder="Say something..." />
+        <div>
+          <button id="sendChatBtn">Send</button>
+          <button id="closeChatBtn">Back</button>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- BOTTOM NAVIGATION -->
@@ -93,7 +123,12 @@
     <button data-section="map-section" class="active">🗺️<span>Map</span></button>
     <button data-section="tasks-section">📋<span>Tasks</span></button>
     <button data-section="companions-section">💞<span>Companions</span></button>
+  <nav id="bottom-nav">
+    <button data-section="map-section" class="active">🗺️<span>Map</span></button>
+    <button data-section="tasks-section">📋<span>Tasks</span></button>
+    <button data-section="companions-section">💞<span>Companions</span></button>
     <button data-section="gacha-section">🎴<span>Gacha</span></button>
+    <button data-section="chat-section">💬<span>Chat</span></button>
   </nav>
 
   <!-- RESET BUTTON -->
@@ -103,6 +138,7 @@
   <div id="modal-overlay" style="display: none;"></div>
 
   <!-- MAIN SCRIPT -->
+<script src="taskManager.js"></script>
   <script src="script.js"></script>
 
   <!-- BOND EVENT MODAL -->
