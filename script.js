@@ -215,7 +215,13 @@ function displayTasks() {
 
     const div = document.createElement('div');
     div.className = 'task-card' + (completed.includes(t.id) ? ' completed' : '');
-    div.innerHTML = `${t.text} <span class="task-xp">+${t.xp} XP</span>`;
+    const textSpan = document.createElement('span');
+    textSpan.textContent = t.text;
+    const xpSpan = document.createElement('span');
+    xpSpan.className = 'task-xp';
+    xpSpan.textContent = `+${t.xp} XP`;
+    div.appendChild(textSpan);
+    div.appendChild(xpSpan);
     div.onclick = () => {
       if (!completed.includes(t.id)) {
         completed.push(t.id);
