@@ -1,6 +1,6 @@
 # MaZi FieryFox RPG
 
-MaZi FieryFox is a lightweight browser RPG prototype. It features a simple task list, companions that can be unlocked via a gacha system, a basic XP and coin economy, and a level system that increases as you complete tasks.
+MaZi FieryFox is a lightweight browser RPG prototype. It features a simple task list, companions that can be unlocked via a gacha system, a basic XP and coin economy, and a level system that increases as you complete tasks. Tasks can now be scheduled to appear daily, weekly or monthly.
 
 ## Getting Started
 
@@ -26,3 +26,7 @@ Replace `YOUR_OPENAI_KEY` with your actual key.
 ## Saving Progress
 
 The game uses the browser's local storage to persist data. Custom tasks, completed tasks, earned XP, coins and unlocked companions are all stored locally so your progress remains even after refreshing or closing the tab.
+
+## Task Scheduling
+
+Tasks can be set to repeat on a daily, weekly or monthly cycle. Only tasks that are due for the current day will be displayed in the task list.

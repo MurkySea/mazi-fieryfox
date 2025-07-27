@@ -263,9 +263,18 @@ function displayTasks() {
   });
 }
 
-function shouldShowTaskToday(task) {
-  // Placeholder logic — always return true unless custom repeat logic is needed
-  return true;
+function shouldShowTaskToday(task, today = new Date()) {
+  const rep = task.repeat || 'daily';
+  switch (rep) {
+    case 'daily':
+      return true;
+    case 'weekly':
+      return today.getDay() === 1; // Monday
+    case 'monthly':
+      return today.getDate() === 1;
+    default:
+      return true;
+  }
 }
 
 function addXP(xp) {
@@ -693,5 +702,5 @@ if (typeof window !== 'undefined' && document.getElementById('bottom-nav')) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { addItem, getInventory };
+  module.exports = { addItem, getInventory, shouldShowTaskToday };
 }
