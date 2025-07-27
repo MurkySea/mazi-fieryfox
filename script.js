@@ -238,16 +238,36 @@ function showGachaModalMulti(results, items = []) {
   modal.querySelector('.close-modal').onclick = () => { modal.style.display = 'none'; };
 }
 
+const notifiedPeriods = {};
+
+function getCurrentTimePeriod(date = new Date()) {
+  const h = date.getHours();
+  if (h < 12) return 'morning';
+  if (h < 18) return 'afternoon';
+  return 'evening';
+}
+
+function maybeNotify(period, tasks, completed) {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission !== 'granted') return;
+  if (notifiedPeriods[period]) return;
+  const pending = tasks.filter(t => !completed.includes(t.id));
+  if (pending.length) {
+    new Notification('Task Reminder', { body: `You have ${pending.length} ${period} task(s).` });
+    notifiedPeriods[period] = true;
+  }
+}
+
 function displayTasks() {
   const container = document.getElementById('taskList');
   if (!container) return;
 
   container.innerHTML = '';
   const completed = getCompletedTasks();
+  const period = getCurrentTimePeriod();
+  const dueTasks = TM.tasks.filter(t => shouldShowTaskToday(t) && (!t.time || t.time === period));
 
-  TM.tasks.forEach(t => {
-    if (!shouldShowTaskToday(t)) return;
-
+  dueTasks.forEach(t => {
     const div = document.createElement('div');
     div.className = 'task-card' + (completed.includes(t.id) ? ' completed' : '');
     const textSpan = document.createElement('span');
@@ -268,6 +288,8 @@ function displayTasks() {
     };
     container.appendChild(div);
   });
+
+  maybeNotify(period, dueTasks, completed);
 }
 
 function shouldShowTaskToday(task, today = new Date()) {
@@ -653,6 +675,10 @@ function sendChat() {
 function init() {
   const nav = document.getElementById('bottom-nav');
   const sections = document.querySelectorAll('.main-section');
+
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
 
   nav.addEventListener('click', e => {
     const btn = e.target.closest('button[data-section]');

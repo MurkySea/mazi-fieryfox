@@ -6,6 +6,11 @@ describe('createTask', () => {
     document.body.innerHTML = `
       <input id="taskName" />
       <input id="taskXP" />
+      <select id="taskTime">
+        <option value="morning">Morning</option>
+        <option value="afternoon">Afternoon</option>
+        <option value="evening">Evening</option>
+      </select>
       <select id="taskRepeat">
         <option value="daily">Daily</option>
         <option value="weekly">Weekly</option>
@@ -19,6 +24,7 @@ describe('createTask', () => {
   test('adds a task and saves to localStorage', () => {
     document.getElementById('taskName').value = 'Test Task';
     document.getElementById('taskXP').value = '5';
+    document.getElementById('taskTime').value = 'morning';
     document.getElementById('taskRepeat').value = 'daily';
 
     createTask();
