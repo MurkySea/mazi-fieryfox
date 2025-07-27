@@ -355,6 +355,110 @@ function closeBondModal() {
   document.getElementById("bondEventModal").classList.add("hidden");
 }
 
+let currentChatCompanion = null;
+let chatLogs = JSON.parse(localStorage.getItem('mazi_chat_logs') || '{}');
+
+function displayChatMenu() {
+  const menu = document.getElementById('chatMenu');
+  const windowEl = document.getElementById('chatWindow');
+  if (!menu || !windowEl) return;
+  menu.style.display = 'block';
+  windowEl.classList.add('hidden');
+  menu.innerHTML = '';
+  fetchAllCompanions(comps => {
+    const prog = getProgress();
+    const unlocked = comps.filter(c => prog.unlocked[c.Name || c['Companion Name']]);
+    if (unlocked.length === 0) {
+      menu.textContent = 'No companions unlocked yet.';
+      return;
+    }
+    unlocked.forEach(c => {
+      const name = c.Name || c['Companion Name'];
+      const btn = document.createElement('button');
+      btn.textContent = name;
+      btn.onclick = () => openChat(c);
+      menu.appendChild(btn);
+    });
+  });
+}
+
+function openChat(comp) {
+  currentChatCompanion = comp;
+  const menu = document.getElementById('chatMenu');
+  const windowEl = document.getElementById('chatWindow');
+  const history = document.getElementById('chatHistory');
+  if (!menu || !windowEl || !history) return;
+  menu.style.display = 'none';
+  windowEl.classList.remove('hidden');
+  history.innerHTML = '';
+  const key = comp.Name || comp['Companion Name'];
+  const log = chatLogs[key] || [];
+  if (log.length === 0) {
+    const greet = `Hello, I'm ${comp.Name}. ${comp.Personality}`;
+    log.push({ s: comp.Name, t: greet });
+  }
+  log.forEach(entry => addChatMessage(entry.s, entry.t));
+}
+
+function closeChat() {
+  const menu = document.getElementById('chatMenu');
+  const windowEl = document.getElementById('chatWindow');
+  if (currentChatCompanion) {
+    const key = currentChatCompanion.Name || currentChatCompanion['Companion Name'];
+    chatLogs[key] = Array.from(document.querySelectorAll('#chatHistory .chat-msg')).map(el => ({
+      s: el.classList.contains('from-player') ? 'You' : key,
+      t: el.textContent
+    }));
+    localStorage.setItem('mazi_chat_logs', JSON.stringify(chatLogs));
+  }
+  currentChatCompanion = null;
+  if (menu) menu.style.display = 'block';
+  if (windowEl) windowEl.classList.add('hidden');
+}
+
+function addChatMessage(sender, text) {
+  const history = document.getElementById('chatHistory');
+  if (!history) return;
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + (sender === 'You' ? 'from-player' : 'from-companion');
+  div.textContent = text;
+  history.appendChild(div);
+  history.scrollTop = history.scrollHeight;
+  if (currentChatCompanion) {
+    const key = currentChatCompanion.Name || currentChatCompanion['Companion Name'];
+    if (!chatLogs[key]) chatLogs[key] = [];
+    chatLogs[key].push({ s: sender, t: text });
+  }
+}
+
+function generateChatReply(comp) {
+  const pers = comp.Personality || '';
+  const traits = comp['Character Traits'] || comp.CharacterTraits || '';
+  const opts = [
+    `As someone who's ${pers.toLowerCase()}, I can relate.`,
+    `My ${traits.toLowerCase()} often help in times like these.`,
+    `I'm feeling ${pers.split(',')[0].toLowerCase()} today.`,
+    `Those ${traits.split(',')[0].toLowerCase()} skills might come in handy.`
+  ];
+  return opts[Math.floor(Math.random() * opts.length)];
+}
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+  const msg = input.value.trim();
+  if (!msg) return;
+  addChatMessage('You', msg);
+  input.value = '';
+  if (currentChatCompanion) {
+    const reply = generateChatReply(currentChatCompanion);
+    setTimeout(() => {
+      addChatMessage(currentChatCompanion.Name, reply);
+      localStorage.setItem('mazi_chat_logs', JSON.stringify(chatLogs));
+    }, 500);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   const navButtons = document.querySelectorAll('#bottom-nav button');
   const sections = document.querySelectorAll('.main-section');
@@ -368,6 +472,7 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById(secId).classList.add('active');
       if (secId === 'companions-section') displayCompanionsUI();
       if (secId === 'tasks-section') displayTasks();
+      if (secId === 'chat-section') displayChatMenu();
     });
   });
 
@@ -405,6 +510,18 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById("taskModal").classList.remove("hidden");
   });
 
+  const sendBtn = document.getElementById('sendChatBtn');
+  const closeBtn = document.getElementById('closeChatBtn');
+  if (sendBtn) sendBtn.addEventListener('click', sendChat);
+  if (closeBtn) closeBtn.addEventListener('click', closeChat);
+  const chatInput = document.getElementById('chatInput');
+  if (chatInput) chatInput.addEventListener('keypress', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendChat();
+    }
+  });
+
   // Reset Button
   document.getElementById('resetBtn').onclick = function () {
     localStorage.removeItem('mazi_gacha_progress');
@@ -421,4 +538,5 @@ document.addEventListener('DOMContentLoaded', function () {
   updateXPBar();             // Fill XP bar
   document.getElementById('coinCount').textContent = getCoins(); // Init coins
   displayTasks();            // Display tasks
+  displayChatMenu();         // Prepare chat menu
 });
