@@ -429,7 +429,7 @@ function sendChat() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+function init() {
   const navButtons = document.querySelectorAll('#bottom-nav button');
   const sections = document.querySelectorAll('.main-section');
 
@@ -510,4 +510,10 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('coinCount').textContent = getCoins(); // Init coins
   displayTasks();            // Display tasks
   displayChatMenu();         // Prepare chat menu
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
