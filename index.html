@@ -77,6 +77,23 @@
       </div>
     </section>
 
+    <!-- CHAT TAB -->
+    <section id="chat-section" class="main-section">
+      <h2>Companion Chat</h2>
+      <div id="chatMenu"></div>
+      <div id="chatWindow" class="hidden">
+        <div class="chat-header">
+          <button id="closeChatBtn">← Back</button>
+          <span id="chatCompanionName"></span>
+        </div>
+        <div id="chatHistory" class="chat-history"></div>
+        <div class="chat-input-box">
+          <input id="chatInput" type="text" placeholder="Say something..." />
+          <button id="sendChatBtn">Send</button>
+        </div>
+      </div>
+    </section>
+
     <!-- COMPANIONS TAB -->
     <section id="companions-section" class="main-section">
       <h2>Your Companions</h2>
@@ -119,6 +136,7 @@
   <nav id="bottom-nav">
     <button data-section="map-section" class="active">🗺️<span>Map</span></button>
     <button data-section="tasks-section">📋<span>Tasks</span></button>
+    <button data-section="chat-section">💬<span>Chat</span></button>
     <button data-section="companions-section">💞<span>Companions</span></button>
     <button data-section="gacha-section">🎴<span>Gacha</span></button>
     <button data-section="inventory-section">🎒<span>Inventory</span></button>

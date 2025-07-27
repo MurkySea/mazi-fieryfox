@@ -486,6 +486,8 @@ function promptForApiKey() {
 }
 
 // -- Chatting with Companions --
+const MAX_CHAT_HISTORY = 10;
+
 async function sendMessageToChatGPT(companionId, message) {
   const apiKey = getOpenAIKey();
   if (!apiKey) {
@@ -494,12 +496,21 @@ async function sendMessageToChatGPT(companionId, message) {
   }
 
   const compData = companionBonds[companionId] || { name: companionId };
-  const persona = `You are ${compData.name}, a companion in the MaZi FieryFox RPG. Respond concisely and stay in character.`;
+  const personaParts = [compData.name, compData.Title, compData.Personality, compData.Bio];
+  const persona = `You are ${personaParts.filter(Boolean).join('. ')}. Stay in character and keep replies concise.`;
+
+  const key = compData.name;
+  const log = chatLogs[key] || [];
+  const history = log.slice(-MAX_CHAT_HISTORY).map(entry => ({
+    role: entry.s === 'You' ? 'user' : 'assistant',
+    content: entry.t
+  }));
 
   const payload = {
     model: 'gpt-3.5-turbo',
     messages: [
       { role: 'system', content: persona },
+      ...history,
       { role: 'user', content: message }
     ]
   };
@@ -825,6 +836,7 @@ function init() {
     if (secId === 'companions-section') displayCompanionsUI();
     if (secId === 'tasks-section') displayTasks();
     if (secId === 'inventory-section') displayInventory();
+    if (secId === 'chat-section') displayChatMenu();
   });
 
   // Ripple effect
@@ -868,7 +880,15 @@ function init() {
   const apiBtn = document.getElementById('setApiKeyBtn');
   if (apiBtn) apiBtn.addEventListener('click', promptForApiKey);
 
-  // Chat send button
+  const sendBtn = document.getElementById('sendChatBtn');
+  if (sendBtn) sendBtn.addEventListener('click', sendChat);
+  const input = document.getElementById('chatInput');
+  if (input) input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendChat();
+  });
+  const closeBtn = document.getElementById('closeChatBtn');
+  if (closeBtn) closeBtn.addEventListener('click', closeChat);
+
   // Add Task Button
   document.getElementById("addTaskBtn").addEventListener("click", () => {
     document.getElementById("taskModal").classList.remove("hidden");
@@ -894,6 +914,7 @@ function init() {
   // Initial setup
   TM.loadTasks();               // Load saved custom tasks
   ensureInitialUnlock();     // Unlock a starting companion
+  displayChatMenu();         // Prepare chat UI
   initDarkMode();            // Apply saved theme
   updateXPBar();             // Fill XP bar
   updateMilestoneDisplay();  // Show completed tasks

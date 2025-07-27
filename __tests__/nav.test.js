@@ -24,6 +24,8 @@ describe('navigation tabs', () => {
     expect(document.getElementById('map-section').classList.contains('active')).toBe(true);
     navButtons[1].click();
     expect(document.getElementById('tasks-section').classList.contains('active')).toBe(true);
+    navButtons[2].click();
+    expect(document.getElementById('chat-section').classList.contains('active')).toBe(true);
     navButtons[0].click();
     expect(document.getElementById('map-section').classList.contains('active')).toBe(true);
   });
