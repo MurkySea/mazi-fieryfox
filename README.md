@@ -30,3 +30,7 @@ Some options such as AI quest generation use the OpenAI API. To enable these fea
 
 You can clear the key at any time by removing `openaiKey` from your browser's local storage.
 
+## AI Character Generator
+
+With an API key set, you can create entirely new companions complete with backstory, personality, a short story hook and a custom quest. Click **Generate AI Character** on the gacha tab to summon one. An image is produced using the DALL·E API and the generated quest is added to your task list automatically.
+

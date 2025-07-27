@@ -169,6 +169,10 @@ function showCardFromData(comp, stars = 1) {
   document.getElementById("cardName").textContent = comp.Name || comp['Companion Name'];
   document.getElementById("cardTitle").textContent = comp.Title || comp['Title'] || '';
   document.getElementById("cardBio").textContent = comp.Bio || comp['Bio'] || '';
+  const storyEl = document.getElementById("cardStory");
+  if (storyEl) storyEl.textContent = comp.Story || '';
+  const questEl = document.getElementById("cardQuest");
+  if (questEl) questEl.textContent = comp.Quest || '';
   const prog = getProgress();
   const name = comp.Name || comp['Companion Name'];
   const bondLevel = prog.bonds[name] || 0;
@@ -559,6 +563,66 @@ async function generateCompanionWithAI() {
   }
 }
 
+async function createImage(prompt) {
+  const apiKey = localStorage.getItem('openaiKey');
+  const res = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey
+    },
+    body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1 })
+  });
+  const data = await res.json();
+  return data.data?.[0]?.url || '';
+}
+
+async function generateCharacterWithAI() {
+  const apiKey = localStorage.getItem('openaiKey');
+  if (!apiKey) {
+    alert('OpenAI API key not found');
+    return;
+  }
+  const prompt =
+    'Create a JSON object with fields Name, Backstory, Personality, Story, Quest describing a new fantasy companion.';
+  const payload = {
+    model: 'gpt-3.5-turbo',
+    messages: [{ role: 'user', content: prompt }]
+  };
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + apiKey
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    let text = data.choices?.[0]?.message?.content?.trim() || '{}';
+    text = text.replace(/```json|```/g, '');
+    const comp = JSON.parse(text);
+    comp.ImageURL = await createImage(`fantasy portrait of ${comp.Name}`);
+    comp.Title = comp.Title || '';
+    comp.Bio = comp.Backstory || comp.Bio || '';
+    comp.Rarity = 'Epic';
+    const custom = JSON.parse(localStorage.getItem('mazi_custom_companions') || '[]');
+    custom.push(comp);
+    localStorage.setItem('mazi_custom_companions', JSON.stringify(custom));
+    fetchAllCompanions(() => {});
+    let prog = getProgress();
+    prog.unlocked[comp.Name] = true;
+    prog.stars[comp.Name] = 1;
+    setProgress(prog);
+    TM.tasks.push({ id: Date.now(), text: comp.Quest, xp: 20 });
+    TM.saveTasks();
+    displayCompanionsUI();
+    showGachaModal(comp, true, 1);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 
 function increaseBond(companionId, amount = 1) {
   if (!companionBonds[companionId]) return;
@@ -765,6 +829,9 @@ function init() {
 
   const compBtn = document.getElementById('generateCompanionBtn');
   if (compBtn) compBtn.addEventListener('click', generateCompanionWithAI);
+
+  const charBtn = document.getElementById('generateCharacterBtn');
+  if (charBtn) charBtn.addEventListener('click', generateCharacterWithAI);
 
   const apiBtn = document.getElementById('setApiKeyBtn');
   if (apiBtn) apiBtn.addEventListener('click', promptForApiKey);
