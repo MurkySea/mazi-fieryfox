@@ -3,26 +3,8 @@ const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2wIf1t5R2FnM
 const rarityWeights = { "Common": 70, "Rare": 25, "Epic": 5 };
 const RANK_UP_THRESHOLD = 3;
 
-const tasks = [
-  { id: 1, text: "Complete daily routine • 🔁 Daily", xp: 25 },
-  { id: 2, text: "Tidy up workspace • 🔁 Daily", xp: 15 },
-  { id: 3, text: "Drink 2L water • 🔁 Daily", xp: 10 },
-  { id: 4, text: "Finish a new quest • 🔂 Weekly", xp: 25 },
-  { id: 5, text: "Read for 20 minutes • 📆 Monthly", xp: 20 }
-];
-
-function loadTasks() {
-  const saved = localStorage.getItem('mazi_custom_tasks');
-  if (saved) {
-    const parsed = JSON.parse(saved);
-    parsed.forEach(t => tasks.push(t));
-  }
-}
-
-function saveTasks() {
-  const custom = tasks.filter(t => t.id >= 1000);
-  localStorage.setItem('mazi_custom_tasks', JSON.stringify(custom));
-}
+const { tasks, loadTasks, saveTasks, createTask, formatRepeat } = window.TaskManager;
+window.createTask = createTask;
 
 // -- XP / Coin Progression --
 function getXP() { return parseInt(localStorage.getItem('mazi_xp') || '0'); }
@@ -263,38 +245,6 @@ function hideTaskModal() {
   document.getElementById("taskModal").classList.add("hidden");
 }
 
-function createTask() {
-  const name = document.getElementById("taskName").value.trim();
-  const xp = parseInt(document.getElementById("taskXP").value.trim(), 10);
-  const repeat = document.getElementById("taskRepeat").value;
-
-  if (!name || isNaN(xp)) return;
-
-  const id = Date.now(); // Unique timestamp-based ID
-  const newTask = {
-    id,
-    text: `${name} • ${formatRepeat(repeat)}`,
-    xp
-  };
-
-  tasks.push(newTask);
-  saveTasks();
-  displayTasks();
-
-  document.getElementById("taskName").value = "";
-  document.getElementById("taskXP").value = "";
-  document.getElementById("taskRepeat").value = "daily";
-  document.getElementById("taskModal").classList.add("hidden");
-}
-
-function formatRepeat(type) {
-  switch (type) {
-    case "daily": return "🔁 Daily";
-    case "weekly": return "🔂 Weekly";
-    case "monthly": return "📆 Monthly";
-    default: return "";
-  }
-}
 
 const companionBonds = {
   selene: { name: "Selene Graytail", bond: 0 },
