@@ -23,10 +23,15 @@ Tasks can be set to repeat on a daily, weekly or monthly cycle. Only tasks that 
 
 ## OpenAI Features
 
-Some options such as AI quest generation use the OpenAI API. To enable these features, provide your own API key:
+Some options such as AI quest and story generation use the OpenAI API. To enable these features, provide your own API key:
 
 1. Open the game in your browser and click the **API Key** button in the top bar.
 2. Enter your OpenAI API key when prompted. The key is saved to local storage under `openaiKey`.
 
 You can clear the key at any time by removing `openaiKey` from your browser's local storage.
+
+With a key set you can:
+ - Generate AI quests from the Tasks tab.
+ - Generate AI companions from the Gacha tab.
+ - Generate an AI story from the Map tab.
 
