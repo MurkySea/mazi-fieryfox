@@ -137,6 +137,30 @@ function displayInventory() {
   });
 }
 
+function displayCharacterList() {
+  const list = document.getElementById('characterList');
+  if (!list) return;
+  list.innerHTML = '';
+  const chars = JSON.parse(localStorage.getItem('mazi_custom_characters') || '[]');
+  chars.forEach(ch => {
+    const card = document.createElement('div');
+    card.className = 'character-card';
+    const img = document.createElement('img');
+    img.className = 'character-avatar';
+    img.src = ch.ImageURL || 'companion_placeholder.png';
+    img.alt = ch.Name || '';
+    card.appendChild(img);
+    const name = document.createElement('div');
+    name.textContent = ch.Name;
+    card.appendChild(name);
+    const role = document.createElement('div');
+    const raceRole = [ch.Race, ch.Role].filter(Boolean).join(' ');
+    role.textContent = raceRole;
+    card.appendChild(role);
+    list.appendChild(card);
+  });
+}
+
 function ensureInitialUnlock() {
   fetchAllCompanions((companions) => {
     let prog = getProgress();
@@ -637,6 +661,7 @@ async function generateFullCharacter() {
     const list = JSON.parse(localStorage.getItem('mazi_custom_characters') || '[]');
     list.push(char);
     localStorage.setItem('mazi_custom_characters', JSON.stringify(list));
+    displayCharacterList();
     alert(`Created ${char.Name}!`);
   } catch (err) {
     console.error(err);
@@ -893,6 +918,7 @@ function init() {
     if (secId === 'tasks-section') displayTasks();
     if (secId === 'inventory-section') displayInventory();
     if (secId === 'chat-section') displayChatMenu();
+    if (secId === 'gacha-section') displayCharacterList();
   });
 
   // Ripple effect
@@ -982,6 +1008,7 @@ function init() {
   document.getElementById('coinCount').textContent = getCoins(); // Init coins
   displayTasks();            // Display tasks
   displayInventory();        // Show inventory
+  displayCharacterList();    // Show generated characters
   checkReminders();
   setInterval(checkReminders, 60000);
 }
