@@ -290,16 +290,6 @@ function updateXPBar() {
 }
 
 // -- Create Task Logic --
-document.getElementById("addTaskBtn").addEventListener("click", () => {
-  document.getElementById("taskModal").classList.remove("hidden");
-});
-
-const genQuestBtn = document.getElementById('generateQuestBtn');
-if (genQuestBtn) genQuestBtn.addEventListener('click', generateQuestWithAI);
-
-const genCompBtn = document.getElementById('generateCompanionBtn');
-if (genCompBtn) genCompBtn.addEventListener('click', generateCompanionWithAI);
-
 function hideTaskModal() {
   document.getElementById("taskModal").classList.add("hidden");
 }
@@ -465,15 +455,6 @@ async function generateCompanionWithAI() {
   }
 }
 
-function addChatMessage(role, text) {
-  const container = document.getElementById('chatMessages');
-  if (!container) return;
-  const div = document.createElement('div');
-  div.className = 'chat-message ' + (role === 'ai' ? 'ai' : '');
-  div.textContent = text;
-  container.appendChild(div);
-  container.scrollTop = container.scrollHeight;
-}
 
 function increaseBond(companionId, amount = 1) {
   if (!companionBonds[companionId]) return;
@@ -523,10 +504,13 @@ function displayChatMenu() {
     }
     unlocked.forEach(c => {
       const name = c.Name || c['Companion Name'];
-      const btn = document.createElement('button');
-      btn.textContent = name;
-      btn.onclick = () => openChat(c);
-      menu.appendChild(btn);
+      const log = chatLogs[name] || [];
+      const preview = log.length ? log[log.length - 1].t : '';
+      const div = document.createElement('div');
+      div.className = 'chat-contact';
+      div.innerHTML = `<span class="contact-name">${name}</span><span class="contact-preview">${preview}</span>`;
+      div.onclick = () => openChat(c);
+      menu.appendChild(div);
     });
   });
 }
@@ -662,18 +646,6 @@ function init() {
   if (compBtn) compBtn.addEventListener('click', generateCompanionWithAI);
 
   // Chat send button
-  const sendBtn = document.getElementById('sendChatBtn');
-  if (sendBtn) {
-    sendBtn.addEventListener('click', async () => {
-      const input = document.getElementById('chatInput');
-      const text = input.value.trim();
-      if (!text) return;
-      addChatMessage('user', text);
-      input.value = '';
-      const reply = await sendMessageToChatGPT('selene', text);
-      if (reply) addChatMessage('ai', reply);
-    });
-  }
   // Add Task Button
   document.getElementById("addTaskBtn").addEventListener("click", () => {
     document.getElementById("taskModal").classList.remove("hidden");
