@@ -105,6 +105,17 @@ button {
   color: #4d342f;
 }
 
+#taskMilestoneDisplay {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.bond-level {
+  font-size: 0.85em;
+  color: #c06;
+}
+
 /* Task List Items */
 .task-list li {
   background: #fff8ec;
