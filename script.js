@@ -4,14 +4,12 @@ const rarityWeights = { "Common": 70, "Rare": 25, "Epic": 5 };
 const RANK_UP_THRESHOLD = 3;
 const itemPool = ['Potion', 'Elixir', 'Revive'];
 
-let tasks = [];
-let loadTasks = () => {};
-let saveTasks = () => {};
-let createTask = () => {};
-let formatRepeat = () => '';
+const TM = (typeof window !== 'undefined' && window.TaskManager)
+  ? window.TaskManager
+  : { tasks: [], loadTasks: () => {}, saveTasks: () => {}, createTask: () => {}, formatRepeat: () => '' };
+
 if (typeof window !== 'undefined' && window.TaskManager) {
-  ({ tasks, loadTasks, saveTasks, createTask, formatRepeat } = window.TaskManager);
-  window.createTask = createTask;
+  window.createTask = TM.createTask;
 }
 
 // -- XP / Coin Progression --
@@ -247,7 +245,7 @@ function displayTasks() {
   container.innerHTML = '';
   const completed = getCompletedTasks();
 
-  tasks.forEach(t => {
+  TM.tasks.forEach(t => {
     if (!shouldShowTaskToday(t)) return;
 
     const div = document.createElement('div');
@@ -459,8 +457,8 @@ async function generateQuestWithAI() {
     const text = data.choices?.[0]?.message?.content?.trim();
     if (text) {
       const id = Date.now();
-      tasks.push({ id, text, xp: 20 });
-      saveTasks();
+      TM.tasks.push({ id, text, xp: 20 });
+      TM.saveTasks();
       displayTasks();
     }
   } catch (err) {
@@ -738,7 +736,7 @@ function init() {
   };
 
   // Initial setup
-  loadTasks();               // Load saved custom tasks
+  TM.loadTasks();               // Load saved custom tasks
   ensureInitialUnlock();     // Unlock a starting companion
   initDarkMode();            // Apply saved theme
   updateXPBar();             // Fill XP bar
