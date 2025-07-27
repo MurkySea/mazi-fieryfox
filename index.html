@@ -88,6 +88,20 @@
         <button class="gacha-button" data-count="10">Summon 10 (100🪙)</button>
       </div>
     </section>
+
+    <!-- CHAT TAB -->
+    <section id="chat-section" class="main-section">
+      <h2>Chat</h2>
+      <div id="chatMenu">Select a companion to chat with.</div>
+      <div id="chatWindow" class="hidden">
+        <div id="chatHistory"></div>
+        <input id="chatInput" type="text" placeholder="Say something..." />
+        <div>
+          <button id="sendChatBtn">Send</button>
+          <button id="closeChatBtn">Back</button>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- BOTTOM NAVIGATION -->
@@ -96,6 +110,7 @@
     <button data-section="tasks-section">📋<span>Tasks</span></button>
     <button data-section="companions-section">💞<span>Companions</span></button>
     <button data-section="gacha-section">🎴<span>Gacha</span></button>
+    <button data-section="chat-section">💬<span>Chat</span></button>
   </nav>
 
   <!-- RESET BUTTON -->
