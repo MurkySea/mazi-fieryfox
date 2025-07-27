@@ -462,3 +462,33 @@ body.dark-mode #chatHistory {
 body.dark-mode .contact-preview {
   color: #bbb;
 }
+
+/* Character List */
+#characterList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.character-card {
+  background: #fff4dd;
+  padding: 0.5rem;
+  border-radius: 8px;
+  width: 120px;
+  text-align: center;
+}
+
+.character-avatar {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin-bottom: 0.25rem;
+}
+
+body.dark-mode .character-card {
+  background: #2c2c2c;
+  color: #eee;
+}
