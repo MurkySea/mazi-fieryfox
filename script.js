@@ -2,6 +2,7 @@
 const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2wIf1t5R2FnMI5cEcLtz5zDUl584Hi6H-AuvKg5-EJqHXFYLB_JG4XncrjEmQK6lRkYAdZ08MBkX3/pub?output=csv';
 const rarityWeights = { "Common": 70, "Rare": 25, "Epic": 5 };
 const RANK_UP_THRESHOLD = 3;
+const AI_GENERATOR_COST = 30; // coins required to generate a new companion
 // Items that can drop from the gacha. These will be added to the player's
 // inventory when rolled. Keeping the list here makes it easy to expand with
 // additional fantasy loot.
@@ -63,7 +64,25 @@ function pickRandomByRarity(companions) {
 
 let allCompanions = [];
 
+function cleanInvalidCompanions() {
+  const custom = JSON.parse(localStorage.getItem('mazi_custom_companions') || '[]');
+  const valid = custom.filter(c => c && c.Name);
+  if (valid.length !== custom.length) {
+    localStorage.setItem('mazi_custom_companions', JSON.stringify(valid));
+  }
+  let prog = getProgress();
+  Object.keys(prog.unlocked).forEach(name => {
+    if (!name || name === 'undefined') {
+      delete prog.unlocked[name];
+      delete prog.stars[name];
+      delete prog.bonds[name];
+    }
+  });
+  setProgress(prog);
+}
+
 function fetchAllCompanions(callback) {
+  cleanInvalidCompanions();
   fetch(sheetUrl)
     .then(res => res.text())
     .then(csvText => {
@@ -555,44 +574,7 @@ async function generateQuestWithAI() {
 }
 
 async function generateCompanionWithAI() {
-  const apiKey = getOpenAIKey();
-  if (!apiKey) {
-    alert('OpenAI API key not found');
-    return;
-  }
-  const prompt = 'Create a JSON object with Name, Title, Bio, Personality for a new fantasy companion.';
-  const payload = {
-    model: 'gpt-3.5-turbo',
-    messages: [{ role: 'user', content: prompt }]
-  };
-  try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey
-      },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    let text = data.choices?.[0]?.message?.content?.trim() || '{}';
-    text = text.replace(/```json|```/g, '');
-    const comp = JSON.parse(text);
-    comp.ImageURL = 'companion_placeholder.png';
-    comp.Rarity = 'Epic';
-    const custom = JSON.parse(localStorage.getItem('mazi_custom_companions') || '[]');
-    custom.push(comp);
-    localStorage.setItem('mazi_custom_companions', JSON.stringify(custom));
-    fetchAllCompanions(() => {});
-    let prog = getProgress();
-    prog.unlocked[comp.Name] = true;
-    prog.stars[comp.Name] = 1;
-    setProgress(prog);
-    displayCompanionsUI();
-    showGachaModal(comp, true, 1);
-  } catch (err) {
-    console.error(err);
-  }
+  await generateCharacterWithAI();
 }
 
 async function createImage(prompt) {
@@ -615,6 +597,14 @@ async function generateCharacterWithAI() {
     alert('OpenAI API key not found');
     return;
   }
+  const coins = getCoins();
+  if (coins < AI_GENERATOR_COST) {
+    alert('Not enough coins!');
+    return;
+  }
+  setCoins(coins - AI_GENERATOR_COST);
+  const coinEl = document.getElementById('coinCount');
+  if (coinEl) coinEl.textContent = getCoins();
   const prompt =
     'Create a JSON object with fields Name, Backstory, Personality, Story, Quest describing a new fantasy companion.';
   const payload = {
@@ -634,7 +624,8 @@ async function generateCharacterWithAI() {
     let text = data.choices?.[0]?.message?.content?.trim() || '{}';
     text = text.replace(/```json|```/g, '');
     const comp = JSON.parse(text);
-    comp.ImageURL = await createImage(`fantasy portrait of ${comp.Name}`);
+    const imgPrompt = `fantasy portrait of ${comp.Name}, ${comp.Personality}`;
+    comp.ImageURL = await createImage(imgPrompt);
     comp.Title = comp.Title || '';
     comp.Bio = comp.Backstory || comp.Bio || '';
     comp.Rarity = 'Epic';
