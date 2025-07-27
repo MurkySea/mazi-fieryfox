@@ -1,9 +1,9 @@
 const tasks = [
-  { id: 1, text: "Complete daily routine • 🔁 Daily", xp: 25 },
-  { id: 2, text: "Tidy up workspace • 🔁 Daily", xp: 15 },
-  { id: 3, text: "Drink 2L water • 🔁 Daily", xp: 10 },
-  { id: 4, text: "Finish a new quest • 🔂 Weekly", xp: 25 },
-  { id: 5, text: "Read for 20 minutes • 📆 Monthly", xp: 20 }
+  { id: 1, text: "Complete daily routine • 🔁 Daily", xp: 25, repeat: 'daily' },
+  { id: 2, text: "Tidy up workspace • 🔁 Daily", xp: 15, repeat: 'daily' },
+  { id: 3, text: "Drink 2L water • 🔁 Daily", xp: 10, repeat: 'daily' },
+  { id: 4, text: "Finish a new quest • 🔂 Weekly", xp: 25, repeat: 'weekly' },
+  { id: 5, text: "Read for 20 minutes • 📆 Monthly", xp: 20, repeat: 'monthly' }
 ];
 
 function saveTasks() {
@@ -44,7 +44,7 @@ function createTask() {
   if (!name || isNaN(xp)) return;
 
   const id = Date.now();
-  const newTask = { id, text: `${name} • ${formatRepeat(repeat)}`, xp };
+  const newTask = { id, text: `${name} • ${formatRepeat(repeat)}`, xp, repeat };
   tasks.push(newTask);
   saveTasks();
   if (typeof displayTasks === "function") displayTasks();

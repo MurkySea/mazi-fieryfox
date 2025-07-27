@@ -6,7 +6,11 @@ describe('createTask', () => {
     document.body.innerHTML = `
       <input id="taskName" />
       <input id="taskXP" />
-      <select id="taskRepeat"></select>
+      <select id="taskRepeat">
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+      </select>
     `;
     localStorage.clear();
     tasks.length = 0;
@@ -23,5 +27,6 @@ describe('createTask', () => {
     const saved = JSON.parse(localStorage.getItem('mazi_custom_tasks'));
     expect(saved.length).toBe(1);
     expect(saved[0].text).toContain('Test Task');
+    expect(saved[0].repeat).toBe('daily');
   });
 });
