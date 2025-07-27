@@ -190,6 +190,8 @@ function displayCompanionsUI() {
 }
 
 // -- Companion Card Modal Logic --
+let currentCardCompanionId = null;
+
 function showCardFromData(comp, stars = 1) {
   document.getElementById("cardImg").src = (comp.ImageURL && comp.ImageURL.startsWith("http")) ? comp.ImageURL.trim() : 'companion_placeholder.png';
   document.getElementById("cardName").textContent = comp.Name || comp['Companion Name'];
@@ -204,6 +206,15 @@ function showCardFromData(comp, stars = 1) {
   const bondLevel = prog.bonds[name] || 0;
   const bondEl = document.getElementById("cardBond");
   if (bondEl) bondEl.textContent = `Bond Lv ${bondLevel}`;
+  currentCardCompanionId = name.toLowerCase().split(' ')[0];
+  const interactBtn = document.getElementById('bondInteractBtn');
+  if (interactBtn) {
+    if (companionBonds[currentCardCompanionId] && bondLevel >= 5) {
+      interactBtn.style.display = 'inline-block';
+    } else {
+      interactBtn.style.display = 'none';
+    }
+  }
   document.getElementById("companionModal").classList.remove("hidden");
 }
 
@@ -731,6 +742,16 @@ function closeBondModal() {
   document.getElementById("bondEventModal").classList.add("hidden");
 }
 
+function bondInteract() {
+  if (!currentCardCompanionId || !companionBonds[currentCardCompanionId]) return;
+  const name = companionBonds[currentCardCompanionId].name;
+  const prog = getProgress();
+  prog.bonds[name] = (prog.bonds[name] || 0) + 1;
+  setProgress(prog);
+  displayCompanionsUI();
+  triggerBondEvent(currentCardCompanionId);
+}
+
 let currentChatCompanion = null;
 let chatLogs = JSON.parse(localStorage.getItem('mazi_chat_logs') || '{}');
 
@@ -974,6 +995,7 @@ if (typeof module !== 'undefined') {
     addItem,
     getInventory,
     shouldShowTaskToday,
-    performGacha
+    performGacha,
+    bondInteract
   };
 }
