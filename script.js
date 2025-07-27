@@ -198,6 +198,7 @@ function performGacha(count) {
 }
 
 function showGachaModal(comp, isNew, stars) {
+  closeChat();
   const modal = document.getElementById('modal-overlay');
   modal.style.display = 'flex';
   const imgUrl = (comp.ImageURL && comp.ImageURL.startsWith("http")) ? comp.ImageURL.trim() : 'companion_placeholder.png';
@@ -214,6 +215,7 @@ function showGachaModal(comp, isNew, stars) {
 }
 
 function showGachaModalMulti(results, items = []) {
+  closeChat();
   const modal = document.getElementById('modal-overlay');
   modal.style.display = 'flex';
   let html = `<div class='modal-card' style="text-align:center;"><h2>Summon Results</h2>`;
@@ -577,6 +579,7 @@ function openChat(comp) {
   currentChatCompanion = comp;
   const menu = document.getElementById('chatMenu');
   const windowEl = document.getElementById('chatWindow');
+  const nameEl = document.getElementById('chatCompanionName');
   const history = document.getElementById('chatHistory');
   if (!menu || !windowEl || !history) return;
   menu.style.display = 'none';
@@ -584,6 +587,7 @@ function openChat(comp) {
   history.innerHTML = '';
   const key = comp.Name || comp['Companion Name'];
   const log = chatLogs[key] || [];
+  if (nameEl) nameEl.textContent = key;
   if (log.length === 0) {
     const greet = `Hello, I'm ${comp.Name}. ${comp.Personality}`;
     log.push({ s: comp.Name, t: greet });
@@ -594,6 +598,7 @@ function openChat(comp) {
 function closeChat() {
   const menu = document.getElementById('chatMenu');
   const windowEl = document.getElementById('chatWindow');
+  const nameEl = document.getElementById('chatCompanionName');
   if (currentChatCompanion) {
     const key = currentChatCompanion.Name || currentChatCompanion['Companion Name'];
     chatLogs[key] = Array.from(document.querySelectorAll('#chatHistory .chat-msg')).map(el => ({
@@ -605,6 +610,7 @@ function closeChat() {
   currentChatCompanion = null;
   if (menu) menu.style.display = 'block';
   if (windowEl) windowEl.classList.add('hidden');
+  if (nameEl) nameEl.textContent = '';
 }
 
 function addChatMessage(sender, text) {
@@ -743,7 +749,6 @@ function init() {
   updateMilestoneDisplay();  // Show completed tasks
   document.getElementById('coinCount').textContent = getCoins(); // Init coins
   displayTasks();            // Display tasks
-  displayChatMenu();         // Prepare chat menu
   displayInventory();        // Show inventory
 }
 

@@ -34,4 +34,4 @@ Tasks can be set to repeat on a daily, weekly or monthly cycle. Only tasks that 
 
 ## Chat Menu
 
-The Chat tab shows an inbox-style list of your unlocked companions. Each entry displays the companion's name and the most recent message from that conversation. Select a companion from the list to open the chat window and continue chatting.
+The Chat tab now displays a split layout with your unlocked companions listed on the left and the conversation on the right. Select a companion from the list to open the chat window and continue chatting.
