@@ -4,14 +4,12 @@ const rarityWeights = { "Common": 70, "Rare": 25, "Epic": 5 };
 const RANK_UP_THRESHOLD = 3;
 const itemPool = ['Potion', 'Elixir', 'Revive'];
 
-let tasks = [];
-let loadTasks = () => {};
-let saveTasks = () => {};
-let createTask = () => {};
-let formatRepeat = () => '';
+const TM = (typeof window !== 'undefined' && window.TaskManager)
+  ? window.TaskManager
+  : { tasks: [], loadTasks: () => {}, saveTasks: () => {}, createTask: () => {}, formatRepeat: () => '' };
+
 if (typeof window !== 'undefined' && window.TaskManager) {
-  ({ tasks, loadTasks, saveTasks, createTask, formatRepeat } = window.TaskManager);
-  window.createTask = createTask;
+  window.createTask = TM.createTask;
 }
 
 // -- XP / Coin Progression --
@@ -247,7 +245,7 @@ function displayTasks() {
   container.innerHTML = '';
   const completed = getCompletedTasks();
 
-  tasks.forEach(t => {
+  TM.tasks.forEach(t => {
     if (!shouldShowTaskToday(t)) return;
 
     const div = document.createElement('div');
@@ -459,8 +457,8 @@ async function generateQuestWithAI() {
     const text = data.choices?.[0]?.message?.content?.trim();
     if (text) {
       const id = Date.now();
-      tasks.push({ id, text, xp: 20 });
-      saveTasks();
+      TM.tasks.push({ id, text, xp: 20 });
+      TM.saveTasks();
       displayTasks();
     }
   } catch (err) {
@@ -647,21 +645,25 @@ function sendChat() {
 }
 
 function init() {
-  const navButtons = document.querySelectorAll('#bottom-nav button');
+  const nav = document.getElementById('bottom-nav');
   const sections = document.querySelectorAll('.main-section');
 
-  navButtons.forEach(btn => {
-    btn.addEventListener('click', function () {
-      navButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const secId = btn.dataset.section;
-      sections.forEach(sec => sec.classList.remove('active'));
-      document.getElementById(secId).classList.add('active');
-      if (secId === 'companions-section') displayCompanionsUI();
-      if (secId === 'tasks-section') displayTasks();
-      if (secId === 'chat-section') displayChatMenu();
-      if (secId === 'inventory-section') displayInventory();
+  nav.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-section]');
+    if (!btn) return;
+
+    nav.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const secId = btn.dataset.section;
+    sections.forEach(sec => {
+      sec.classList.toggle('active', sec.id === secId);
     });
+
+    if (secId === 'companions-section') displayCompanionsUI();
+    if (secId === 'tasks-section') displayTasks();
+    if (secId === 'chat-section') displayChatMenu();
+    if (secId === 'inventory-section') displayInventory();
   });
 
   // Ripple effect
@@ -728,7 +730,7 @@ function init() {
   };
 
   // Initial setup
-  loadTasks();               // Load saved custom tasks
+  TM.loadTasks();               // Load saved custom tasks
   ensureInitialUnlock();     // Unlock a starting companion
   initDarkMode();            // Apply saved theme
   updateXPBar();             // Fill XP bar
