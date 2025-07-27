@@ -302,6 +302,52 @@ const bondQuotes = {
   ]
 };
 
+// -- Chatting with Companions --
+async function sendMessageToChatGPT(companionId, message) {
+  const apiKey = localStorage.getItem('openaiKey');
+  if (!apiKey) {
+    alert('OpenAI API key not found');
+    return '';
+  }
+
+  const compData = companionBonds[companionId] || { name: companionId };
+  const persona = `You are ${compData.name}, a companion in the MaZi FieryFox RPG. Respond concisely and stay in character.`;
+
+  const payload = {
+    model: 'gpt-3.5-turbo',
+    messages: [
+      { role: 'system', content: persona },
+      { role: 'user', content: message }
+    ]
+  };
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content?.trim() || '';
+  } catch (err) {
+    console.error(err);
+    return '';
+  }
+}
+
+function addChatMessage(role, text) {
+  const container = document.getElementById('chatMessages');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'chat-message ' + (role === 'ai' ? 'ai' : '');
+  div.textContent = text;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
 function increaseBond(companionId, amount = 1) {
   if (!companionBonds[companionId]) return;
 
@@ -480,6 +526,20 @@ document.addEventListener('DOMContentLoaded', function () {
       performGacha(cnt);
     });
   });
+
+  // Chat send button
+  const sendBtn = document.getElementById('sendChatBtn');
+  if (sendBtn) {
+    sendBtn.addEventListener('click', async () => {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      addChatMessage('user', text);
+      input.value = '';
+      const reply = await sendMessageToChatGPT('selene', text);
+      if (reply) addChatMessage('ai', reply);
+    });
+  }
 
   // Add Task Button
   document.getElementById("addTaskBtn").addEventListener("click", () => {
