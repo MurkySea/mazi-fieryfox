@@ -1,9 +1,30 @@
 /* Global Styles */
+:root {
+  --bg-color: #f8f1e9;
+  --text-color: #3d2b1f;
+  --accent-color: #f4b860;
+  --accent-dark: #c47932;
+}
+
 body {
   font-family: 'Segoe UI', sans-serif;
-  background: #f8f1e9;
+  background: var(--bg-color);
+  color: var(--text-color);
   margin: 0;
   padding: 1rem;
+}
+
+#top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: var(--accent-color);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+body.dark-mode #top-bar {
+  background: #333;
 }
 
 h1, h2 {
@@ -14,11 +35,11 @@ h1, h2 {
 button {
   margin-top: 1rem;
   padding: 0.6rem 1.2rem;
-  background: #f4b860;
+  background: var(--accent-color);
   border: none;
   border-radius: 8px;
   font-weight: bold;
-  color: #3d2b1f;
+  color: var(--text-color);
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -62,6 +83,18 @@ button {
   display: flex;
   align-items: center;
   gap: 0.3rem;
+}
+
+/* Unified Panel Styling */
+.panel {
+  background: #fffaf3;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  margin-bottom: 1rem;
+}
+body.dark-mode .panel {
+  background: #333;
 }
 
 /* Task Cards */
@@ -129,11 +162,11 @@ button {
 #addTaskBtn {
   margin-top: 1rem;
   padding: 0.5rem 1rem;
-  background: #f4b860;
+  background: var(--accent-color);
   border: none;
   border-radius: 8px;
   font-weight: bold;
-  color: #3d2b1f;
+  color: var(--text-color);
   cursor: pointer;
 }
 
@@ -268,11 +301,11 @@ button {
   position: fixed;
   bottom: 0;
   width: 100%;
-  background: #f4d4a5;
+  background: var(--accent-color);
   display: flex;
   justify-content: space-around;
   padding: 0.4rem 0;
-  border-top: 2px solid #d7a75f;
+  border-top: 2px solid var(--accent-dark);
 }
 #bottom-nav button {
   background: none;
@@ -280,11 +313,11 @@ button {
   font-size: 1.2rem;
   text-align: center;
   flex: 1;
-  color: #3d2b1f;
+  color: var(--text-color);
 }
 #bottom-nav button.active {
   font-weight: bold;
-  border-top: 3px solid #c47932;
+  border-top: 3px solid var(--accent-dark);
 }
 #bottom-nav button span {
   display: block;
@@ -293,13 +326,17 @@ button {
 
 /* Dark Mode Theme */
 body.dark-mode {
-  background: #222;
-  color: #e0e0e0;
+  --bg-color: #1e1e1e;
+  --text-color: #eee;
+  --accent-color: #333;
+  --accent-dark: #3d6fb4;
+  background: var(--bg-color);
+  color: var(--text-color);
 }
 
 body.dark-mode button {
-  background: #1e3a5f;
-  color: #fff;
+  background: var(--accent-color);
+  color: var(--text-color);
 }
 
 body.dark-mode .task-card,
@@ -326,16 +363,16 @@ body.dark-mode .xp-fill {
 }
 
 body.dark-mode #bottom-nav {
-  background: #1f1f1f;
-  border-top-color: #1e3a5f;
+  background: var(--accent-color);
+  border-top-color: var(--accent-dark);
 }
 
 body.dark-mode #bottom-nav button {
-  color: #e0e0e0;
+  color: var(--text-color);
 }
 
 body.dark-mode #bottom-nav button.active {
-  border-top-color: #3d6fb4;
+  border-top-color: var(--accent-dark);
 }
 
 /* Map Background */
@@ -361,7 +398,7 @@ body.dark-mode #bottom-nav button.active {
   align-items: center;
   padding: 1rem;
   box-sizing: border-box;
-  color: #3d2b1f;
+  color: var(--text-color);
 }
 
 #choiceButtons button {
@@ -374,23 +411,6 @@ body.dark-mode #bottom-nav button.active {
 
 .hidden {
   display: none;
-}
-/* Dark Mode */
-body.dark-mode {
-  background:#1e1e1e;
-  color:#eee;
-}
-body.dark-mode button{
-  background:#333;
-  color:#eee;
-}
-body.dark-mode .task-card{
-  background:#2c2c2c;
-  color:#eee;
-}
-body.dark-mode #bottom-nav{
-  background:#333;
-  border-top-color:#555;
 }
 
 /* Chat Interface */
