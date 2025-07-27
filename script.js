@@ -246,6 +246,12 @@ function updateXPBar() {
   const xp = getXP();
   const pct = Math.min(100, (xp % 100));
   bar.style.width = pct + '%';
+
+  const levelEl = document.getElementById('playerLevel');
+  if (levelEl) {
+    const level = Math.floor(xp / 100) + 1;
+    levelEl.textContent = level;
+  }
 }
 
 // -- Create Task Logic --
