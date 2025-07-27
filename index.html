@@ -28,7 +28,18 @@
   <main id="game-container">
     <!-- MAP TAB -->
     <section id="map-section" class="main-section active">
-      <div class="map-parchment"></div>
+      <div class="map-parchment">
+        <div id="adventureUI" class="adventure-ui">
+          <p id="storyText"></p>
+          <div id="choiceButtons"></div>
+          <div id="combatUI" class="hidden">
+            <p>Player HP: <span id="playerHpDisplay">10</span></p>
+            <p>Enemy HP: <span id="enemyHpDisplay">0</span></p>
+            <button id="attackBtn">Attack</button>
+          </div>
+          <button id="startAdventureBtn" onclick="startAdventure()">Start Adventure</button>
+        </div>
+      </div>
     </section>
 
     <!-- TASKS TAB -->
@@ -112,6 +123,7 @@
   <!-- MAIN SCRIPT -->
   <script src="taskManager.js"></script>
   <script src="script.js"></script>
+  <script src="adventure.js"></script>
 
   <!-- BOND EVENT MODAL -->
   <div id="bondEventModal" class="modal hidden">
