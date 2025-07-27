@@ -560,9 +560,15 @@ function displayChatMenu() {
       const name = c.Name || c['Companion Name'];
       const log = chatLogs[name] || [];
       const preview = log.length ? log[log.length - 1].t : '';
+      const imgUrl = (c.ImageURL && c.ImageURL.startsWith('http')) ? c.ImageURL.trim() : 'companion_placeholder.png';
       const div = document.createElement('div');
       div.className = 'chat-contact';
-      div.innerHTML = `<span class="contact-name">${name}</span><span class="contact-preview">${preview}</span>`;
+      div.innerHTML = `
+        <div class="chat-avatar" style="background-image:url('${imgUrl}')"></div>
+        <div class="contact-info">
+          <span class="contact-name">${name}</span>
+          <span class="contact-preview">${preview}</span>
+        </div>`;
       div.onclick = () => openChat(c);
       menu.appendChild(div);
     });
