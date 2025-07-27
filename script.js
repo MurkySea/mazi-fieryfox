@@ -56,8 +56,9 @@ function fetchAllCompanions(callback) {
         header.forEach((col, i) => obj[col.trim()] = row[i] || '');
         return obj;
       });
-      allCompanions = companions;
-      if (callback) callback(companions);
+      const custom = JSON.parse(localStorage.getItem('mazi_custom_companions') || '[]');
+      allCompanions = companions.concat(custom);
+      if (callback) callback(allCompanions);
     });
 }
 
@@ -289,6 +290,16 @@ function updateXPBar() {
 }
 
 // -- Create Task Logic --
+document.getElementById("addTaskBtn").addEventListener("click", () => {
+  document.getElementById("taskModal").classList.remove("hidden");
+});
+
+const genQuestBtn = document.getElementById('generateQuestBtn');
+if (genQuestBtn) genQuestBtn.addEventListener('click', generateQuestWithAI);
+
+const genCompBtn = document.getElementById('generateCompanionBtn');
+if (genCompBtn) genCompBtn.addEventListener('click', generateCompanionWithAI);
+
 function hideTaskModal() {
   document.getElementById("taskModal").classList.add("hidden");
 }
@@ -380,6 +391,89 @@ async function sendMessageToChatGPT(companionId, message) {
   }
 }
 
+async function generateQuestWithAI() {
+  const apiKey = localStorage.getItem('openaiKey');
+  if (!apiKey) {
+    alert('OpenAI API key not found');
+    return;
+  }
+  const prompt = 'Create a short quest description for a fantasy RPG in one sentence.';
+  const payload = {
+    model: 'gpt-3.5-turbo',
+    messages: [{ role: 'user', content: prompt }]
+  };
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content?.trim();
+    if (text) {
+      const id = Date.now();
+      tasks.push({ id, text, xp: 20 });
+      saveTasks();
+      displayTasks();
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function generateCompanionWithAI() {
+  const apiKey = localStorage.getItem('openaiKey');
+  if (!apiKey) {
+    alert('OpenAI API key not found');
+    return;
+  }
+  const prompt = 'Create a JSON object with Name, Title, Bio, Personality for a new fantasy companion.';
+  const payload = {
+    model: 'gpt-3.5-turbo',
+    messages: [{ role: 'user', content: prompt }]
+  };
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    let text = data.choices?.[0]?.message?.content?.trim() || '{}';
+    text = text.replace(/```json|```/g, '');
+    const comp = JSON.parse(text);
+    comp.ImageURL = 'companion_placeholder.png';
+    comp.Rarity = 'Epic';
+    const custom = JSON.parse(localStorage.getItem('mazi_custom_companions') || '[]');
+    custom.push(comp);
+    localStorage.setItem('mazi_custom_companions', JSON.stringify(custom));
+    fetchAllCompanions(() => {});
+    let prog = getProgress();
+    prog.unlocked[comp.Name] = true;
+    prog.stars[comp.Name] = 1;
+    setProgress(prog);
+    displayCompanionsUI();
+    showGachaModal(comp, true, 1);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function addChatMessage(role, text) {
+  const container = document.getElementById('chatMessages');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'chat-message ' + (role === 'ai' ? 'ai' : '');
+  div.textContent = text;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
 
 function increaseBond(companionId, amount = 1) {
   if (!companionBonds[companionId]) return;
@@ -561,6 +655,25 @@ function init() {
     });
   });
 
+  const questBtn = document.getElementById('generateQuestBtn');
+  if (questBtn) questBtn.addEventListener('click', generateQuestWithAI);
+
+  const compBtn = document.getElementById('generateCompanionBtn');
+  if (compBtn) compBtn.addEventListener('click', generateCompanionWithAI);
+
+  // Chat send button
+  const sendBtn = document.getElementById('sendChatBtn');
+  if (sendBtn) {
+    sendBtn.addEventListener('click', async () => {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      addChatMessage('user', text);
+      input.value = '';
+      const reply = await sendMessageToChatGPT('selene', text);
+      if (reply) addChatMessage('ai', reply);
+    });
+  }
   // Add Task Button
   document.getElementById("addTaskBtn").addEventListener("click", () => {
     document.getElementById("taskModal").classList.remove("hidden");
