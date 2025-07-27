@@ -825,6 +825,7 @@ function init() {
     if (secId === 'companions-section') displayCompanionsUI();
     if (secId === 'tasks-section') displayTasks();
     if (secId === 'inventory-section') displayInventory();
+    if (secId === 'chat-section') displayChatMenu();
   });
 
   // Ripple effect
@@ -868,7 +869,15 @@ function init() {
   const apiBtn = document.getElementById('setApiKeyBtn');
   if (apiBtn) apiBtn.addEventListener('click', promptForApiKey);
 
-  // Chat send button
+  const sendBtn = document.getElementById('sendChatBtn');
+  if (sendBtn) sendBtn.addEventListener('click', sendChat);
+  const input = document.getElementById('chatInput');
+  if (input) input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendChat();
+  });
+  const closeBtn = document.getElementById('closeChatBtn');
+  if (closeBtn) closeBtn.addEventListener('click', closeChat);
+
   // Add Task Button
   document.getElementById("addTaskBtn").addEventListener("click", () => {
     document.getElementById("taskModal").classList.remove("hidden");
@@ -894,6 +903,7 @@ function init() {
   // Initial setup
   TM.loadTasks();               // Load saved custom tasks
   ensureInitialUnlock();     // Unlock a starting companion
+  displayChatMenu();         // Prepare chat UI
   initDarkMode();            // Apply saved theme
   updateXPBar();             // Fill XP bar
   updateMilestoneDisplay();  // Show completed tasks
