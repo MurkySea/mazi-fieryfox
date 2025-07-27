@@ -17,6 +17,13 @@ const itemPool = [
   'Silver Key'
 ];
 
+function getOpenAIKey() {
+  if (typeof window !== 'undefined' && window.OPENAI_API_KEY) {
+    return window.OPENAI_API_KEY;
+  }
+  return localStorage.getItem('openaiKey');
+}
+
 const TM = (typeof window !== 'undefined' && window.TaskManager)
   ? window.TaskManager
   : { tasks: [], loadTasks: () => {}, saveTasks: () => {}, createTask: () => {}, formatRepeat: () => '' };
@@ -458,7 +465,7 @@ function promptForApiKey() {
 
 // -- Chatting with Companions --
 async function sendMessageToChatGPT(companionId, message) {
-  const apiKey = localStorage.getItem('openaiKey');
+  const apiKey = getOpenAIKey();
   if (!apiKey) {
     alert('OpenAI API key not found');
     return '';
@@ -493,7 +500,7 @@ async function sendMessageToChatGPT(companionId, message) {
 }
 
 async function generateQuestWithAI() {
-  const apiKey = localStorage.getItem('openaiKey');
+  const apiKey = getOpenAIKey();
   if (!apiKey) {
     alert('OpenAI API key not found');
     return;
@@ -526,7 +533,7 @@ async function generateQuestWithAI() {
 }
 
 async function generateCompanionWithAI() {
-  const apiKey = localStorage.getItem('openaiKey');
+  const apiKey = getOpenAIKey();
   if (!apiKey) {
     alert('OpenAI API key not found');
     return;
@@ -567,7 +574,7 @@ async function generateCompanionWithAI() {
 }
 
 async function createImage(prompt) {
-  const apiKey = localStorage.getItem('openaiKey');
+  const apiKey = getOpenAIKey();
   const res = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: {
@@ -581,7 +588,7 @@ async function createImage(prompt) {
 }
 
 async function generateCharacterWithAI() {
-  const apiKey = localStorage.getItem('openaiKey');
+  const apiKey = getOpenAIKey();
   if (!apiKey) {
     alert('OpenAI API key not found');
     return;
