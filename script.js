@@ -505,6 +505,8 @@ function promptForApiKey() {
 }
 
 // -- Chatting with Companions --
+const MAX_CHAT_HISTORY = 10;
+
 async function sendMessageToChatGPT(companionId, message) {
   const apiKey = getOpenAIKey();
   if (!apiKey) {
@@ -513,12 +515,21 @@ async function sendMessageToChatGPT(companionId, message) {
   }
 
   const compData = companionBonds[companionId] || { name: companionId };
-  const persona = `You are ${compData.name}, a companion in the MaZi FieryFox RPG. Respond concisely and stay in character.`;
+  const personaParts = [compData.name, compData.Title, compData.Personality, compData.Bio];
+  const persona = `You are ${personaParts.filter(Boolean).join('. ')}. Stay in character and keep replies concise.`;
+
+  const key = compData.name;
+  const log = chatLogs[key] || [];
+  const history = log.slice(-MAX_CHAT_HISTORY).map(entry => ({
+    role: entry.s === 'You' ? 'user' : 'assistant',
+    content: entry.t
+  }));
 
   const payload = {
     model: 'gpt-3.5-turbo',
     messages: [
       { role: 'system', content: persona },
+      ...history,
       { role: 'user', content: message }
     ]
   };
