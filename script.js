@@ -647,21 +647,25 @@ function sendChat() {
 }
 
 function init() {
-  const navButtons = document.querySelectorAll('#bottom-nav button');
+  const nav = document.getElementById('bottom-nav');
   const sections = document.querySelectorAll('.main-section');
 
-  navButtons.forEach(btn => {
-    btn.addEventListener('click', function () {
-      navButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const secId = btn.dataset.section;
-      sections.forEach(sec => sec.classList.remove('active'));
-      document.getElementById(secId).classList.add('active');
-      if (secId === 'companions-section') displayCompanionsUI();
-      if (secId === 'tasks-section') displayTasks();
-      if (secId === 'chat-section') displayChatMenu();
-      if (secId === 'inventory-section') displayInventory();
+  nav.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-section]');
+    if (!btn) return;
+
+    nav.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const secId = btn.dataset.section;
+    sections.forEach(sec => {
+      sec.classList.toggle('active', sec.id === secId);
     });
+
+    if (secId === 'companions-section') displayCompanionsUI();
+    if (secId === 'tasks-section') displayTasks();
+    if (secId === 'chat-section') displayChatMenu();
+    if (secId === 'inventory-section') displayInventory();
   });
 
   // Ripple effect
