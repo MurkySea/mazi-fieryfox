@@ -4,13 +4,15 @@ MaZi FieryFox is a lightweight browser RPG prototype. It features a simple task 
 
 ## Getting Started
 
-Open the `index.html` file in any modern web browser. You can double-click the file or serve the folder locally with a simple HTTP server:
+You can open `index.html` directly in your browser or run the included server:
 
 ```bash
-npx http-server
+npm install
+npm start
 ```
 
-Then navigate to the provided local URL.
+The server serves the site on `http://localhost:8080` and restricts access to the IP specified in `.env`.
+Copy `.env.example` to `.env` and add your OpenAI key and allowed IP.
 
 
 ## Saving Progress
@@ -24,12 +26,7 @@ You can also use the **Easy Add** button to quickly create a one-time task from 
 
 ## OpenAI Features
 
-Some options such as AI quest and story generation use the OpenAI API. To enable these features, provide your own API key:
-
-1. Open the game in your browser and click the **API Key** button in the top bar.
-2. Enter your OpenAI API key when prompted. The key is saved to local storage under `openaiKey`.
-
-You can clear the key at any time by removing `openaiKey` from your browser's local storage.
+Some options such as AI quest and story generation use the OpenAI API. Provide your key either in `.env` as `OPENAI_API_KEY` or enter it through the **API Key** button in the game. When entered through the UI it is saved to local storage under `openaiKey`.
 ## AI Character Generator
 
 With an API key set, you can create entirely new companions complete with backstory, personality, a short story hook and a custom quest. Click **Generate AI Character** on the gacha tab to summon one. An image is produced using the DALL·E API and the generated quest is added to your task list automatically.
