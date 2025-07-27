@@ -26,7 +26,7 @@ You can also use the **Easy Add** button to quickly create a one-time task from 
 
 ## OpenAI Features
 
-Some options such as AI quest and story generation use the OpenAI API. Provide your key either in `.env` as `OPENAI_API_KEY` or enter it through the **API Key** button in the game. When entered through the UI it is saved to local storage under `openaiKey`.
+Some options such as AI quest and story generation use the OpenAI API. Provide your key either in `.env` as `OPENAI_API_KEY` or enter it through the **API Key** button in the game. When entered through the UI it is saved to local storage under `openaiKey`. These features require an active internet connection and will now show clearer error messages if the API cannot be reached.
 ## AI Character Generator
 
 With an API key set, you can create entirely new companions complete with backstory, personality, a short story hook and a custom quest. Click **Generate AI Character** on the gacha tab to summon one. An image is produced using the DALL·E API and the generated quest is added to your task list automatically.

@@ -25,6 +25,34 @@ function getOpenAIKey() {
   return localStorage.getItem('openaiKey');
 }
 
+async function callOpenAI(endpoint, payload, apiKey = getOpenAIKey()) {
+  if (!apiKey) {
+    alert('OpenAI API key not found');
+    return null;
+  }
+  try {
+    const res = await fetch(`https://api.openai.com/v1/${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + apiKey
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error('OpenAI error', res.status, err);
+      alert('OpenAI request failed: ' + (err.error?.message || res.statusText));
+      return null;
+    }
+    return await res.json();
+  } catch (err) {
+    console.error(err);
+    alert('Network error contacting OpenAI');
+    return null;
+  }
+}
+
 const TM = (typeof window !== 'undefined' && window.TaskManager)
   ? window.TaskManager
   : { tasks: [], loadTasks: () => {}, saveTasks: () => {}, createTask: () => {}, formatRepeat: () => '' };
@@ -543,12 +571,6 @@ function promptForApiKey() {
 const MAX_CHAT_HISTORY = 10;
 
 async function sendMessageToChatGPT(companionId, message) {
-  const apiKey = getOpenAIKey();
-  if (!apiKey) {
-    alert('OpenAI API key not found');
-    return '';
-  }
-
   const compData = companionBonds[companionId] || { name: companionId };
   const personaParts = [compData.name, compData.Title, compData.Personality, compData.Bio];
   const persona = `You are ${personaParts.filter(Boolean).join('. ')}. Stay in character and keep replies concise.`;
@@ -569,53 +591,23 @@ async function sendMessageToChatGPT(companionId, message) {
     ]
   };
 
-  try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey
-      },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content?.trim() || '';
-  } catch (err) {
-    console.error(err);
-    return '';
-  }
+  const data = await callOpenAI('chat/completions', payload);
+  return data?.choices?.[0]?.message?.content?.trim() || '';
 }
 
 async function generateQuestWithAI() {
-  const apiKey = getOpenAIKey();
-  if (!apiKey) {
-    alert('OpenAI API key not found');
-    return;
-  }
   const prompt = 'Create a short quest description for a fantasy RPG in one sentence.';
   const payload = {
     model: 'gpt-3.5-turbo',
     messages: [{ role: 'user', content: prompt }]
   };
-  try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey
-      },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    const text = data.choices?.[0]?.message?.content?.trim();
-    if (text) {
-      const id = Date.now();
-      TM.tasks.push({ id, text, xp: 20 });
-      TM.saveTasks();
-      displayTasks();
-    }
-  } catch (err) {
-    console.error(err);
+  const data = await callOpenAI('chat/completions', payload);
+  const text = data?.choices?.[0]?.message?.content?.trim();
+  if (text) {
+    const id = Date.now();
+    TM.tasks.push({ id, text, xp: 20 });
+    TM.saveTasks();
+    displayTasks();
   }
 }
 
@@ -624,11 +616,6 @@ async function generateCompanionWithAI() {
 }
 
 async function generateFullCharacter() {
-  const apiKey = getOpenAIKey();
-  if (!apiKey) {
-    alert('OpenAI API key not found');
-    return;
-  }
   const coins = getCoins();
   if (coins < AI_GENERATOR_COST) {
     alert('Not enough coins!');
@@ -644,50 +631,26 @@ async function generateFullCharacter() {
     model: 'gpt-3.5-turbo',
     messages: [{ role: 'user', content: prompt }]
   };
-  try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + apiKey
-      },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    let text = data.choices?.[0]?.message?.content?.trim() || '{}';
-    text = text.replace(/```json|```/g, '');
-    const char = JSON.parse(text);
+  const data = await callOpenAI('chat/completions', payload);
+  if (!data) return;
+  let text = data.choices?.[0]?.message?.content?.trim() || '{}';
+  text = text.replace(/```json|```/g, '');
+  const char = JSON.parse(text);
     char.ImageURL = await createImage(char.ImagePrompt);
     const list = JSON.parse(localStorage.getItem('mazi_custom_characters') || '[]');
     list.push(char);
     localStorage.setItem('mazi_custom_characters', JSON.stringify(list));
     displayCharacterList();
     alert(`Created ${char.Name}!`);
-  } catch (err) {
-    console.error(err);
-  }
 }
 
 async function createImage(prompt) {
-  const apiKey = getOpenAIKey();
-  const res = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + apiKey
-    },
-    body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1 })
-  });
-  const data = await res.json();
-  return data.data?.[0]?.url || '';
+  const payload = { model: 'dall-e-3', prompt, n: 1 };
+  const data = await callOpenAI('images/generations', payload);
+  return data?.data?.[0]?.url || '';
 }
 
 async function generateCharacterWithAI() {
-  const apiKey = getOpenAIKey();
-  if (!apiKey) {
-    alert('OpenAI API key not found');
-    return;
-  }
   const coins = getCoins();
   if (coins < AI_GENERATOR_COST) {
     alert('Not enough coins!');
@@ -702,19 +665,11 @@ async function generateCharacterWithAI() {
     model: 'gpt-3.5-turbo',
     messages: [{ role: 'user', content: prompt }]
   };
-  try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + apiKey
-      },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    let text = data.choices?.[0]?.message?.content?.trim() || '{}';
-    text = text.replace(/```json|```/g, '');
-    const comp = JSON.parse(text);
+  const data = await callOpenAI('chat/completions', payload);
+  if (!data) return;
+  let text = data.choices?.[0]?.message?.content?.trim() || '{}';
+  text = text.replace(/```json|```/g, '');
+  const comp = JSON.parse(text);
     const imgPrompt = `fantasy portrait of ${comp.Name}, ${comp.Personality}`;
     comp.ImageURL = await createImage(imgPrompt);
     comp.Title = comp.Title || '';
@@ -732,9 +687,6 @@ async function generateCharacterWithAI() {
     TM.saveTasks();
     displayCompanionsUI();
     showGachaModal(comp, true, 1);
-  } catch (err) {
-    console.error(err);
-  }
 }
 
 

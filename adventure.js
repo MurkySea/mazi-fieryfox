@@ -107,41 +107,24 @@ function startAdventure() {
 }
 
 async function generateStoryWithAI() {
-  const apiKey = localStorage.getItem('openaiKey');
-  if (!apiKey) {
-    alert('OpenAI API key not found');
-    return;
-  }
   const prompt = 'Write a short two sentence hook for a fantasy adventure.';
   const payload = {
     model: 'gpt-3.5-turbo',
     messages: [{ role: 'user', content: prompt }]
   };
-  try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey
-      },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    const text = data.choices?.[0]?.message?.content?.trim();
-    if (text) {
-      const storyEl = document.getElementById('storyText');
-      const choiceEl = document.getElementById('choiceButtons');
-      if (storyEl) storyEl.textContent = text;
-      if (choiceEl) {
-        choiceEl.innerHTML = '';
-        const btn = document.createElement('button');
-        btn.textContent = 'Play Preset Adventure';
-        btn.onclick = startAdventure;
-        choiceEl.appendChild(btn);
-      }
+  const data = await callOpenAI('chat/completions', payload);
+  const text = data?.choices?.[0]?.message?.content?.trim();
+  if (text) {
+    const storyEl = document.getElementById('storyText');
+    const choiceEl = document.getElementById('choiceButtons');
+    if (storyEl) storyEl.textContent = text;
+    if (choiceEl) {
+      choiceEl.innerHTML = '';
+      const btn = document.createElement('button');
+      btn.textContent = 'Play Preset Adventure';
+      btn.onclick = startAdventure;
+      choiceEl.appendChild(btn);
     }
-  } catch (err) {
-    console.error(err);
   }
 }
 
