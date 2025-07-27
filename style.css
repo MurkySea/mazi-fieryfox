@@ -275,6 +275,23 @@ button {
   font-weight: bold;
   border-top: 3px solid #c47932;
 }
+#bottom-nav button span {
+  display: block;
+  font-size: 0.75rem;
+}
+
+/* Map Background */
+#map-section {
+  text-align: center;
+}
+
+.map-parchment {
+  width: 100%;
+  height: 70vh;
+  background:
+    url("images/fantasy_map.png") center/contain no-repeat,
+    url("images/parchment_bg.jpg") center/cover no-repeat;
+}
 /* Global Styles */
 body {
   font-family: 'Segoe UI', sans-serif;
