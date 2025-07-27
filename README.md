@@ -1,6 +1,6 @@
 # MaZi FieryFox RPG
 
-MaZi FieryFox is a lightweight browser RPG prototype. It features a simple task list, companions that can be unlocked via a gacha system, and a basic XP and coin economy.
+MaZi FieryFox is a lightweight browser RPG prototype. It features a simple task list, companions that can be unlocked via a gacha system, a basic XP and coin economy, and a level system that increases as you complete tasks.
 
 ## Getting Started
 
