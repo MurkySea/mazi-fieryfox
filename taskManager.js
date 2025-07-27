@@ -121,6 +121,40 @@ function createTask() {
   if (modal) modal.classList.add("hidden");
 }
 
+function tasksToICS(taskArray = tasks) {
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//MaZi FieryFox//EN'
+  ];
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  taskArray.forEach(t => {
+    if (!t.date) return;
+    let start = t.date.replace(/-/g, '');
+    if (t.exactTime) start += 'T' + t.exactTime.replace(':', '') + '00';
+    lines.push('BEGIN:VEVENT');
+    lines.push(`UID:${t.id}@mazi-fieryfox`);
+    lines.push(`DTSTAMP:${stamp}`);
+    lines.push(`DTSTART:${start}`);
+    lines.push(`SUMMARY:${t.text.replace(/\s*•.*/, '')}`);
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+function downloadICS() {
+  if (typeof document === 'undefined') return;
+  const ics = tasksToICS();
+  const blob = new Blob([ics], { type: 'text/calendar' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tasks.ics';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 const TaskManager = {
   tasks,
   saveTasks,
@@ -128,7 +162,9 @@ const TaskManager = {
   formatRepeat,
   createTask,
   parseNaturalTask,
-  createTaskFromText
+  createTaskFromText,
+  tasksToICS,
+  downloadICS
 };
 
 if (typeof module !== 'undefined' && module.exports) {

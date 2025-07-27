@@ -956,6 +956,11 @@ function init() {
     if (txt) TM.createTaskFromText(txt);
   });
 
+  const exportBtn = document.getElementById('exportCalendarBtn');
+  if (exportBtn) exportBtn.addEventListener('click', () => {
+    TM.downloadICS();
+  });
+
 
   // Reset Button
   document.getElementById('resetBtn').onclick = function () {
