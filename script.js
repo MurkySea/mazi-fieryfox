@@ -700,7 +700,6 @@ function init() {
 
     if (secId === 'companions-section') displayCompanionsUI();
     if (secId === 'tasks-section') displayTasks();
-    if (secId === 'chat-section') displayChatMenu();
     if (secId === 'inventory-section') displayInventory();
   });
 
@@ -745,17 +744,6 @@ function init() {
     document.getElementById("taskModal").classList.remove("hidden");
   });
 
-  const sendBtn = document.getElementById('sendChatBtn');
-  const closeBtn = document.getElementById('closeChatBtn');
-  if (sendBtn) sendBtn.addEventListener('click', sendChat);
-  if (closeBtn) closeBtn.addEventListener('click', closeChat);
-  const chatInput = document.getElementById('chatInput');
-  if (chatInput) chatInput.addEventListener('keypress', e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      sendChat();
-    }
-  });
 
   // Reset Button
   document.getElementById('resetBtn').onclick = function () {

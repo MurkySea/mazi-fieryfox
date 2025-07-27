@@ -12,17 +12,6 @@ npx http-server
 
 Then navigate to the provided local URL.
 
-## OpenAI Chat Setup
-
-The chat feature uses the OpenAI API. Before chatting, store your API key in the
-browser by opening the console and running:
-
-```javascript
-localStorage.setItem('openaiKey', 'YOUR_OPENAI_KEY');
-```
-
-Replace `YOUR_OPENAI_KEY` with your actual key. With an API key set,
-chat messages are sent to ChatGPT so each companion can reply in real time.
 
 ## Saving Progress
 
@@ -32,6 +21,3 @@ The game uses the browser's local storage to persist data. Custom tasks, complet
 
 Tasks can be set to repeat on a daily, weekly or monthly cycle. Only tasks that are due for the current day will be displayed in the task list.
 
-## Chat Menu
-
-The Chat tab now displays a split layout with your unlocked companions listed on the left and the conversation on the right. Select a companion from the list to open the chat window and continue chatting.
