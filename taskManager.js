@@ -72,16 +72,21 @@ function createTask() {
   const xpEl = document.getElementById("taskXP");
   const repeatEl = document.getElementById("taskRepeat");
   const timeEl = document.getElementById("taskTime");
+  const dateEl = document.getElementById("taskDate");
   if (!nameEl || !xpEl || !repeatEl || !timeEl) return;
 
   const name = nameEl.value.trim();
   const xp = parseInt(xpEl.value.trim(), 10);
   const repeat = repeatEl.value;
   const time = timeEl.value;
+  const date = dateEl ? dateEl.value : '';
   if (!name || isNaN(xp)) return;
 
   const id = Date.now();
   const newTask = { id, text: `${name} • ${formatRepeat(repeat)}`, xp, repeat, time };
+  if (repeat === 'once') {
+    newTask.date = date || new Date().toISOString().split('T')[0];
+  }
   tasks.push(newTask);
   saveTasks();
   if (typeof displayTasks === "function") displayTasks();
@@ -90,6 +95,7 @@ function createTask() {
   xpEl.value = "";
   repeatEl.value = "daily";
   timeEl.value = "morning";
+  if (dateEl) dateEl.value = "";
   const modal = document.getElementById("taskModal");
   if (modal) modal.classList.add("hidden");
 }
