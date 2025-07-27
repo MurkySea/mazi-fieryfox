@@ -435,7 +435,8 @@ function applyDarkMode(enabled) {
 }
 
 function initDarkMode() {
-  const enabled = localStorage.getItem('mazi_dark_mode') === 'true';
+  const stored = localStorage.getItem('mazi_dark_mode');
+  const enabled = stored === null ? true : stored === 'true';
   applyDarkMode(enabled);
   const toggleBtn = document.getElementById('darkModeToggle');
   if (toggleBtn) {
