@@ -908,10 +908,31 @@ button {
 }
 
 /* Chat Interface */
-#chatMenu button {
-  display: block;
-  margin: 0.5rem auto;
+.chat-inbox {
+  display: flex;
+  flex-direction: column;
+}
+.chat-contact {
+  display: flex;
+  justify-content: space-between;
   padding: 0.6rem 1rem;
+  border-bottom: 1px solid #ddd;
+  cursor: pointer;
+}
+.chat-contact:hover {
+  background: #f0f0f0;
+}
+.contact-name {
+  font-weight: bold;
+}
+.contact-preview {
+  color: #666;
+  margin-left: 0.5rem;
+  flex: 1;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 #chatWindow.hidden {
   display: none;
