@@ -331,4 +331,34 @@ button {
 .chat-msg.from-companion {
   text-align: left;
   color: #3d2b1f;
+
+/* Dark Mode */
+.mode-toggle {
+  margin-left: 0.5rem;
+}
+body.dark-mode {
+  background: #181b21;
+  color: #f0f0f0;
+}
+body.dark-mode .task-card {
+  background: #2a2d34;
+  color: #f0f0f0;
+}
+body.dark-mode .task-card.completed {
+  background: #355834;
+  color: #d4edda;
+}
+body.dark-mode .modal-box {
+  background: #2a2d34;
+  color: #f0f0f0;
+}
+body.dark-mode #bottom-nav {
+  background: #333;
+  border-top-color: #555;
+}
+body.dark-mode #bottom-nav button {
+  color: #f0f0f0;
+}
+body.dark-mode #bottom-nav button.active {
+  border-top-color: #f4b860;
 }
