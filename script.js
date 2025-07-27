@@ -2,9 +2,17 @@
 const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2wIf1t5R2FnMI5cEcLtz5zDUl584Hi6H-AuvKg5-EJqHXFYLB_JG4XncrjEmQK6lRkYAdZ08MBkX3/pub?output=csv';
 const rarityWeights = { "Common": 70, "Rare": 25, "Epic": 5 };
 const RANK_UP_THRESHOLD = 3;
+const itemPool = ['Potion', 'Elixir', 'Revive'];
 
-const { tasks, loadTasks, saveTasks, createTask, formatRepeat } = window.TaskManager;
-window.createTask = createTask;
+let tasks = [];
+let loadTasks = () => {};
+let saveTasks = () => {};
+let createTask = () => {};
+let formatRepeat = () => '';
+if (typeof window !== 'undefined' && window.TaskManager) {
+  ({ tasks, loadTasks, saveTasks, createTask, formatRepeat } = window.TaskManager);
+  window.createTask = createTask;
+}
 
 // -- XP / Coin Progression --
 function getXP() { return parseInt(localStorage.getItem('mazi_xp') || '0'); }
@@ -62,6 +70,34 @@ function getProgress() {
   return prog;
 }
 function setProgress(obj) { localStorage.setItem('mazi_gacha_progress', JSON.stringify(obj)); }
+
+// -- Inventory State --
+function getInventory() {
+  return JSON.parse(localStorage.getItem('mazi_inventory') || '{}');
+}
+
+function setInventory(inv) {
+  localStorage.setItem('mazi_inventory', JSON.stringify(inv));
+}
+
+function addItem(name, qty = 1) {
+  const inv = getInventory();
+  inv[name] = (inv[name] || 0) + qty;
+  setInventory(inv);
+  displayInventory();
+}
+
+function displayInventory() {
+  const container = document.getElementById('inventoryList');
+  if (!container) return;
+  const inv = getInventory();
+  container.innerHTML = '';
+  Object.entries(inv).forEach(([item, count]) => {
+    const div = document.createElement('div');
+    div.textContent = `${item} x${count}`;
+    container.appendChild(div);
+  });
+}
 
 function ensureInitialUnlock() {
   fetchAllCompanions((companions) => {
@@ -130,6 +166,7 @@ function performGacha(count) {
   fetchAllCompanions(companions => {
     let prog = getProgress();
     let results = [];
+    let gainedItems = [];
     for (let i = 0; i < count; i++) {
       const companion = pickRandomByRarity(companions);
       let name = companion.Name || companion['Companion Name'];
@@ -141,10 +178,16 @@ function performGacha(count) {
         prog.stars[name] = (prog.stars[name] || 1) + 1;
       }
       results.push({ companion, isNew, stars: prog.stars[name] });
+
+      if (Math.random() < 0.3) {
+        const item = itemPool[Math.floor(Math.random() * itemPool.length)];
+        addItem(item, 1);
+        gainedItems.push(item);
+      }
     }
     setProgress(prog);
     displayCompanionsUI();
-    showGachaModalMulti(results);
+    showGachaModalMulti(results, gainedItems);
   });
 }
 
@@ -164,7 +207,7 @@ function showGachaModal(comp, isNew, stars) {
   modal.querySelector('.close-modal').onclick = () => { modal.style.display = 'none'; };
 }
 
-function showGachaModalMulti(results) {
+function showGachaModalMulti(results, items = []) {
   const modal = document.getElementById('modal-overlay');
   modal.style.display = 'flex';
   let html = `<div class='modal-card' style="text-align:center;"><h2>Summon Results</h2>`;
@@ -181,6 +224,9 @@ function showGachaModalMulti(results) {
         </div>
       </div>`;
   });
+  if (items.length) {
+    html += `<div style="margin-top:1em">Items: ${items.join(', ')}</div>`;
+  }
   html += `<button class='close-modal'>Close</button></div>`;
   modal.innerHTML = html;
   modal.querySelector('.close-modal').onclick = () => { modal.style.display = 'none'; };
@@ -576,6 +622,7 @@ function init() {
       if (secId === 'companions-section') displayCompanionsUI();
       if (secId === 'tasks-section') displayTasks();
       if (secId === 'chat-section') displayChatMenu();
+      if (secId === 'inventory-section') displayInventory();
     });
   });
 
@@ -627,7 +674,6 @@ function init() {
       if (reply) addChatMessage('ai', reply);
     });
   }
-
   // Add Task Button
   document.getElementById("addTaskBtn").addEventListener("click", () => {
     document.getElementById("taskModal").classList.remove("hidden");
@@ -663,10 +709,17 @@ function init() {
   document.getElementById('coinCount').textContent = getCoins(); // Init coins
   displayTasks();            // Display tasks
   displayChatMenu();         // Prepare chat menu
+  displayInventory();        // Show inventory
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
+if (typeof window !== 'undefined' && document.getElementById('bottom-nav')) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = { addItem, getInventory };
 }
