@@ -21,7 +21,8 @@ browser by opening the console and running:
 localStorage.setItem('openaiKey', 'YOUR_OPENAI_KEY');
 ```
 
-Replace `YOUR_OPENAI_KEY` with your actual key.
+Replace `YOUR_OPENAI_KEY` with your actual key. With an API key set,
+chat messages are sent to ChatGPT so each companion can reply in real time.
 
 ## Saving Progress
 

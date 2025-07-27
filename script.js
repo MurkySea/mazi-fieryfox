@@ -634,7 +634,7 @@ function generateChatReply(comp) {
   return opts[Math.floor(Math.random() * opts.length)];
 }
 
-function sendChat() {
+async function sendChat() {
   const input = document.getElementById('chatInput');
   if (!input) return;
   const msg = input.value.trim();
@@ -642,11 +642,11 @@ function sendChat() {
   addChatMessage('You', msg);
   input.value = '';
   if (currentChatCompanion) {
-    const reply = generateChatReply(currentChatCompanion);
-    setTimeout(() => {
-      addChatMessage(currentChatCompanion.Name, reply);
-      localStorage.setItem('mazi_chat_logs', JSON.stringify(chatLogs));
-    }, 500);
+    const id = (currentChatCompanion.Name || '').toLowerCase();
+    let reply = await sendMessageToChatGPT(id, msg);
+    if (!reply) reply = generateChatReply(currentChatCompanion);
+    addChatMessage(currentChatCompanion.Name, reply);
+    localStorage.setItem('mazi_chat_logs', JSON.stringify(chatLogs));
   }
 }
 
