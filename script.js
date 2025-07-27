@@ -272,6 +272,27 @@ function showGachaModalMulti(results, items = []) {
 }
 
 const notifiedPeriods = {};
+const remindedTasks = {};
+
+function checkReminders() {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission !== 'granted') return;
+  const now = new Date();
+  const completed = getCompletedTasks();
+  TM.tasks.forEach(t => {
+    if (!t.reminder || !t.exactTime) return;
+    if (!shouldShowTaskToday(t, now)) return;
+    if (completed.includes(t.id)) return;
+    const [h, m] = t.exactTime.split(':').map(n => parseInt(n, 10));
+    const due = new Date(t.date || now.toISOString().split('T')[0]);
+    due.setHours(h, m, 0, 0);
+    const diff = due - now;
+    if (diff <= 0 && diff > -60000 && !remindedTasks[t.id]) {
+      new Notification('Task Due', { body: `${t.text} is due now` });
+      remindedTasks[t.id] = true;
+    }
+  });
+}
 
 function getCurrentTimePeriod(date = new Date()) {
   const h = date.getHours();
@@ -304,7 +325,7 @@ function displayTasks() {
     const div = document.createElement('div');
     div.className = 'task-card' + (completed.includes(t.id) ? ' completed' : '');
     const textSpan = document.createElement('span');
-    textSpan.textContent = t.text;
+    textSpan.textContent = t.text + (t.exactTime ? ` @ ${t.exactTime}` : '');
     const xpSpan = document.createElement('span');
     xpSpan.className = 'task-xp';
     xpSpan.textContent = `+${t.xp} XP`;
@@ -878,6 +899,8 @@ function init() {
   document.getElementById('coinCount').textContent = getCoins(); // Init coins
   displayTasks();            // Display tasks
   displayInventory();        // Show inventory
+  checkReminders();
+  setInterval(checkReminders, 60000);
 }
 
 if (typeof window !== 'undefined' && document.getElementById('bottom-nav')) {
