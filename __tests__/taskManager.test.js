@@ -11,6 +11,8 @@ describe('createTask', () => {
         <option value="afternoon">Afternoon</option>
         <option value="evening">Evening</option>
       </select>
+      <input id="taskExactTime" />
+      <input id="taskReminder" type="checkbox" />
       <input id="taskDate" />
       <select id="taskRepeat">
         <option value="daily">Daily</option>
@@ -50,5 +52,19 @@ describe('createTask', () => {
     expect(tasks.length).toBe(1);
     expect(tasks[0].repeat).toBe('once');
     expect(tasks[0].date).toBe('2023-08-15');
+  });
+
+  test('handles exact time and reminder', () => {
+    document.getElementById('taskName').value = 'Timed Task';
+    document.getElementById('taskXP').value = '8';
+    document.getElementById('taskTime').value = 'morning';
+    document.getElementById('taskRepeat').value = 'daily';
+    document.getElementById('taskExactTime').value = '09:30';
+    document.getElementById('taskReminder').checked = true;
+
+    createTask();
+
+    expect(tasks[0].exactTime).toBe('09:30');
+    expect(tasks[0].reminder).toBe(true);
   });
 });

@@ -40,13 +40,26 @@ function parseNaturalTask(text) {
   if (lower.includes('afternoon')) time = 'afternoon';
   else if (lower.includes('evening') || lower.includes('night')) time = 'evening';
 
+  let exactTime = '';
+  const timeMatch = lower.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+  if (timeMatch) {
+    let h = parseInt(timeMatch[1], 10);
+    const m = parseInt(timeMatch[2] || '0', 10);
+    const mer = timeMatch[3];
+    if (mer) {
+      if (mer === 'pm' && h < 12) h += 12;
+      if (mer === 'am' && h === 12) h = 0;
+    }
+    exactTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
   let date = new Date();
   if (lower.includes('tomorrow')) date.setDate(date.getDate() + 1);
   const dateStr = date.toISOString().split('T')[0];
 
   const name = text.replace(/\b(today|tomorrow|morning|afternoon|evening|night)\b/gi, '').trim();
 
-  return { name: name || text, time, date: dateStr };
+  return { name: name || text, time, date: dateStr, exactTime };
 }
 
 function createTaskFromText(text) {
@@ -59,7 +72,9 @@ function createTaskFromText(text) {
     xp,
     repeat: 'once',
     time: parsed.time,
-    date: parsed.date
+    date: parsed.date,
+    exactTime: parsed.exactTime,
+    reminder: false
   };
   tasks.push(newTask);
   saveTasks();
@@ -72,6 +87,8 @@ function createTask() {
   const xpEl = document.getElementById("taskXP");
   const repeatEl = document.getElementById("taskRepeat");
   const timeEl = document.getElementById("taskTime");
+  const exactEl = document.getElementById("taskExactTime");
+  const reminderEl = document.getElementById("taskReminder");
   const dateEl = document.getElementById("taskDate");
   if (!nameEl || !xpEl || !repeatEl || !timeEl) return;
 
@@ -79,11 +96,13 @@ function createTask() {
   const xp = parseInt(xpEl.value.trim(), 10);
   const repeat = repeatEl.value;
   const time = timeEl.value;
+  const exactTime = exactEl ? exactEl.value : '';
+  const reminder = reminderEl ? reminderEl.checked : false;
   const date = dateEl ? dateEl.value : '';
   if (!name || isNaN(xp)) return;
 
   const id = Date.now();
-  const newTask = { id, text: `${name} • ${formatRepeat(repeat)}`, xp, repeat, time };
+  const newTask = { id, text: `${name} • ${formatRepeat(repeat)}`, xp, repeat, time, exactTime, reminder };
   if (repeat === 'once') {
     newTask.date = date || new Date().toISOString().split('T')[0];
   }
@@ -95,6 +114,8 @@ function createTask() {
   xpEl.value = "";
   repeatEl.value = "daily";
   timeEl.value = "morning";
+  if (exactEl) exactEl.value = "";
+  if (reminderEl) reminderEl.checked = false;
   if (dateEl) dateEl.value = "";
   const modal = document.getElementById("taskModal");
   if (modal) modal.classList.add("hidden");
