@@ -441,6 +441,14 @@ const bondQuotes = {
   ]
 };
 
+function promptForApiKey() {
+  const key = prompt('Enter your OpenAI API key:');
+  if (key) {
+    localStorage.setItem('openaiKey', key.trim());
+    alert('API key saved to local storage');
+  }
+}
+
 // -- Chatting with Companions --
 async function sendMessageToChatGPT(companionId, message) {
   const apiKey = localStorage.getItem('openaiKey');
@@ -757,6 +765,9 @@ function init() {
 
   const compBtn = document.getElementById('generateCompanionBtn');
   if (compBtn) compBtn.addEventListener('click', generateCompanionWithAI);
+
+  const apiBtn = document.getElementById('setApiKeyBtn');
+  if (apiBtn) apiBtn.addEventListener('click', promptForApiKey);
 
   // Chat send button
   // Add Task Button
