@@ -588,6 +588,50 @@ async function generateCompanionWithAI() {
   await generateCharacterWithAI();
 }
 
+async function generateFullCharacter() {
+  const apiKey = getOpenAIKey();
+  if (!apiKey) {
+    alert('OpenAI API key not found');
+    return;
+  }
+  const coins = getCoins();
+  if (coins < AI_GENERATOR_COST) {
+    alert('Not enough coins!');
+    return;
+  }
+  setCoins(coins - AI_GENERATOR_COST);
+  const coinEl = document.getElementById('coinCount');
+  if (coinEl) coinEl.textContent = getCoins();
+
+  const prompt =
+    'Create a JSON object with fields Name, Race, Role, Personality, ImagePrompt describing a unique fantasy character. Personality should be a short phrase.';
+  const payload = {
+    model: 'gpt-3.5-turbo',
+    messages: [{ role: 'user', content: prompt }]
+  };
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + apiKey
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    let text = data.choices?.[0]?.message?.content?.trim() || '{}';
+    text = text.replace(/```json|```/g, '');
+    const char = JSON.parse(text);
+    char.ImageURL = await createImage(char.ImagePrompt);
+    const list = JSON.parse(localStorage.getItem('mazi_custom_characters') || '[]');
+    list.push(char);
+    localStorage.setItem('mazi_custom_characters', JSON.stringify(list));
+    alert(`Created ${char.Name}!`);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 async function createImage(prompt) {
   const apiKey = getOpenAIKey();
   const res = await fetch('https://api.openai.com/v1/images/generations', {
@@ -866,7 +910,7 @@ function init() {
   if (compBtn) compBtn.addEventListener('click', generateCompanionWithAI);
 
   const charBtn = document.getElementById('generateCharacterBtn');
-  if (charBtn) charBtn.addEventListener('click', generateCharacterWithAI);
+  if (charBtn) charBtn.addEventListener('click', generateFullCharacter);
 
   const apiBtn = document.getElementById('setApiKeyBtn');
   if (apiBtn) apiBtn.addEventListener('click', promptForApiKey);
