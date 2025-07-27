@@ -21,3 +21,12 @@ The game uses the browser's local storage to persist data. Custom tasks, complet
 
 Tasks can be set to repeat on a daily, weekly or monthly cycle. Only tasks that are due for the current day will be displayed in the task list.
 
+## OpenAI Features
+
+Some options such as AI quest generation use the OpenAI API. To enable these features, provide your own API key:
+
+1. Open the game in your browser and click the **API Key** button in the top bar.
+2. Enter your OpenAI API key when prompted. The key is saved to local storage under `openaiKey`.
+
+You can clear the key at any time by removing `openaiKey` from your browser's local storage.
+
