@@ -20,6 +20,7 @@ The game uses the browser's local storage to persist data. Custom tasks, complet
 ## Task Scheduling
 
 Tasks can be set to repeat on a daily, weekly or monthly cycle. Only tasks that are due for the current day will be displayed in the task list.
+You can also use the **Easy Add** button to quickly create a one-time task from a short description like "Take out the trash tomorrow morning".
 
 ## OpenAI Features
 

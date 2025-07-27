@@ -323,6 +323,9 @@ function shouldShowTaskToday(task, today = new Date()) {
       return today.getDay() === 1; // Monday
     case 'monthly':
       return today.getDate() === 1;
+    case 'once':
+      if (!task.date) return false;
+      return new Date(task.date).toDateString() === today.toDateString();
     default:
       return true;
   }
@@ -773,6 +776,12 @@ function init() {
   // Add Task Button
   document.getElementById("addTaskBtn").addEventListener("click", () => {
     document.getElementById("taskModal").classList.remove("hidden");
+  });
+
+  const easyBtn = document.getElementById('easyAddBtn');
+  if (easyBtn) easyBtn.addEventListener('click', () => {
+    const txt = prompt('Describe your task:');
+    if (txt) TM.createTaskFromText(txt);
   });
 
 
