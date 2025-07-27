@@ -27,9 +27,44 @@ function formatRepeat(type) {
       return '🔂 Weekly';
     case 'monthly':
       return '📆 Monthly';
+    case 'once':
+      return '';
     default:
       return '';
   }
+}
+
+function parseNaturalTask(text) {
+  const lower = text.toLowerCase();
+  let time = 'morning';
+  if (lower.includes('afternoon')) time = 'afternoon';
+  else if (lower.includes('evening') || lower.includes('night')) time = 'evening';
+
+  let date = new Date();
+  if (lower.includes('tomorrow')) date.setDate(date.getDate() + 1);
+  const dateStr = date.toISOString().split('T')[0];
+
+  const name = text.replace(/\b(today|tomorrow|morning|afternoon|evening|night)\b/gi, '').trim();
+
+  return { name: name || text, time, date: dateStr };
+}
+
+function createTaskFromText(text) {
+  const parsed = parseNaturalTask(text);
+  const id = Date.now();
+  const xp = 10;
+  const newTask = {
+    id,
+    text: parsed.name,
+    xp,
+    repeat: 'once',
+    time: parsed.time,
+    date: parsed.date
+  };
+  tasks.push(newTask);
+  saveTasks();
+  if (typeof displayTasks === 'function') displayTasks();
+  return newTask;
 }
 
 function createTask() {
@@ -59,7 +94,15 @@ function createTask() {
   if (modal) modal.classList.add("hidden");
 }
 
-const TaskManager = { tasks, saveTasks, loadTasks, formatRepeat, createTask };
+const TaskManager = {
+  tasks,
+  saveTasks,
+  loadTasks,
+  formatRepeat,
+  createTask,
+  parseNaturalTask,
+  createTaskFromText
+};
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = TaskManager;
