@@ -74,6 +74,15 @@ function setCompletedTasks(arr) {
   localStorage.setItem('mazi_tasks', JSON.stringify(arr));
 }
 
+function resetCompletedDaily() {
+  const today = new Date().toISOString().split('T')[0];
+  const last = localStorage.getItem('mazi_completed_reset_date');
+  if (last !== today) {
+    setCompletedTasks([]);
+    localStorage.setItem('mazi_completed_reset_date', today);
+  }
+}
+
 // -- Companion Data & Selection --
 function weightedRandomPick(items, weights) {
   let total = weights.reduce((a, b) => a + b, 0);
@@ -399,9 +408,16 @@ function displayTasks() {
   if (!container) return;
 
   container.innerHTML = '';
+  resetCompletedDaily();
   const completed = getCompletedTasks();
   const period = getCurrentTimePeriod();
   const dueTasks = TM.tasks.filter(t => shouldShowTaskToday(t) && (!t.time || t.time === period));
+  dueTasks.sort((a, b) => {
+    const aDone = completed.includes(a.id);
+    const bDone = completed.includes(b.id);
+    if (aDone === bDone) return 0;
+    return aDone ? 1 : -1;
+  });
 
   dueTasks.forEach(t => {
     const div = document.createElement('div');
@@ -427,7 +443,20 @@ function displayTasks() {
         div.classList.add('completed');
         addXP(t.xp);
         handleTaskCompletion();
+      } else {
+        const idx = completed.indexOf(t.id);
+        if (idx !== -1) completed.splice(idx, 1);
+        setCompletedTasks(completed);
+        div.classList.remove('completed');
+        const xp = Math.max(0, getXP() - t.xp);
+        setXP(xp);
+        updateXPBar();
+        let count = parseInt(localStorage.getItem('mazi_total_tasks_completed') || '0');
+        count = Math.max(0, count - 1);
+        localStorage.setItem('mazi_total_tasks_completed', count);
+        updateMilestoneDisplay();
       }
+      displayTasks();
     };
     container.appendChild(div);
   });
@@ -962,6 +991,7 @@ function init() {
 
   // Initial setup
   TM.loadTasks();               // Load saved custom tasks
+  resetCompletedDaily();        // Clear old completions
   ensureInitialUnlock();     // Unlock a starting companion
   displayChatMenu();         // Prepare chat UI
   initDarkMode();            // Apply saved theme
@@ -973,6 +1003,7 @@ function init() {
   displayCharacterList();    // Show generated characters
   checkReminders();
   setInterval(checkReminders, 60000);
+  setInterval(() => { resetCompletedDaily(); displayTasks(); }, 3600000);
 }
 
 if (typeof window !== 'undefined' && document.getElementById('bottom-nav')) {
