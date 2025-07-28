@@ -846,7 +846,9 @@ async function sendChat() {
   addChatMessage('You', msg);
   input.value = '';
   if (currentChatCompanion) {
-    const id = (currentChatCompanion.Name || '').toLowerCase();
+    const id = (currentChatCompanion.Name || '')
+      .toLowerCase()
+      .split(' ')[0];
     let reply = await sendMessageToChatGPT(id, msg);
     if (!reply) reply = generateChatReply(currentChatCompanion);
     addChatMessage(currentChatCompanion.Name, reply);
