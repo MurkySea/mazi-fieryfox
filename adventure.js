@@ -38,6 +38,7 @@ let currentNode = 'start';
 let playerHP = 10;
 let enemyHP = 0;
 let nextAfterCombat = null;
+let storyHistory = [];
 
 function showNode(id) {
   currentNode = id;
@@ -102,37 +103,60 @@ function startCombat(info) {
 }
 
 function startAdventure() {
+  storyHistory = [];
+  const inputBox = document.getElementById('storyInputBox');
+  if (inputBox) inputBox.classList.add('hidden');
   playerHP = 10;
   showNode('start');
 }
 
 async function generateStoryWithAI() {
-  const prompt = 'Write a short two sentence hook for a fantasy adventure.';
-  const payload = {
-    model: 'gpt-3.5-turbo',
-    messages: [{ role: 'user', content: prompt }]
+  const systemMsg = {
+    role: 'system',
+    content:
+      'You are the narrator of a fantasy text adventure. Keep replies concise and end with a question for the player.'
   };
+  storyHistory = [systemMsg, { role: 'user', content: 'Begin the adventure.' }];
+  const payload = { model: 'gpt-3.5-turbo', messages: storyHistory };
   const data = await callOpenAI('chat/completions', payload);
   const text = data?.choices?.[0]?.message?.content?.trim();
   if (text) {
+    storyHistory.push({ role: 'assistant', content: text });
     const storyEl = document.getElementById('storyText');
     const choiceEl = document.getElementById('choiceButtons');
-    if (storyEl) storyEl.textContent = text;
-    if (choiceEl) {
-      choiceEl.innerHTML = '';
-      const btn = document.createElement('button');
-      btn.textContent = 'Play Preset Adventure';
-      btn.onclick = startAdventure;
-      choiceEl.appendChild(btn);
-    }
+    const inputBox = document.getElementById('storyInputBox');
+    if (storyEl) storyEl.innerHTML = `<p>${text}</p>`;
+    if (choiceEl) choiceEl.innerHTML = '';
+    if (inputBox) inputBox.classList.remove('hidden');
+  }
+}
+
+async function continueAIStory() {
+  const inputEl = document.getElementById('storyInput');
+  const storyEl = document.getElementById('storyText');
+  if (!inputEl || !storyEl) return;
+  const msg = inputEl.value.trim();
+  if (!msg) return;
+  inputEl.value = '';
+  storyHistory.push({ role: 'user', content: msg });
+  const payload = { model: 'gpt-3.5-turbo', messages: storyHistory };
+  const data = await callOpenAI('chat/completions', payload);
+  const text = data?.choices?.[0]?.message?.content?.trim();
+  if (text) {
+    storyHistory.push({ role: 'assistant', content: text });
+    const p = document.createElement('p');
+    p.textContent = text;
+    storyEl.appendChild(p);
+    storyEl.scrollTop = storyEl.scrollHeight;
   }
 }
 
 if (typeof window !== 'undefined') {
   window.startAdventure = startAdventure;
   window.generateStoryWithAI = generateStoryWithAI;
+  window.continueAIStory = continueAIStory;
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { storyNodes, showNode, startAdventure, generateStoryWithAI };
+  module.exports = { storyNodes, showNode, startAdventure, generateStoryWithAI, continueAIStory };
 }

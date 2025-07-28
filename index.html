@@ -31,12 +31,16 @@
     <section id="map-section" class="main-section panel active">
       <div class="map-parchment">
         <div id="adventureUI" class="adventure-ui">
-          <p id="storyText"></p>
+          <div id="storyText" class="story-text"></div>
           <div id="choiceButtons"></div>
           <div id="combatUI" class="hidden">
             <p>Player HP: <span id="playerHpDisplay">10</span></p>
             <p>Enemy HP: <span id="enemyHpDisplay">0</span></p>
             <button id="attackBtn">Attack</button>
+          </div>
+          <div id="storyInputBox" class="hidden">
+            <input id="storyInput" type="text" placeholder="Your action..." />
+            <button id="sendStoryBtn" onclick="continueAIStory()">Send</button>
           </div>
           <button id="startAdventureBtn" onclick="startAdventure()">Start Adventure</button>
           <button id="generateStoryBtn" onclick="generateStoryWithAI()">✨ Generate AI Story</button>
