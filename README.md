@@ -31,8 +31,9 @@ Some options such as AI quest and story generation use the OpenAI API. Provide y
 
 With an API key set, you can create entirely new companions complete with backstory, personality, a short story hook and a custom quest. Click **Generate AI Character** on the gacha tab to summon one. An image is produced using the DALL·E API and the generated quest is added to your task list automatically.
 With a key set you can:
- - Generate AI quests from the Tasks tab.
- - Generate AI companions from the Gacha tab.
- - Generate an AI story from the Map tab.
+- Generate AI quests from the Tasks tab.
+- Generate AI companions from the Gacha tab.
+- Generate an AI story from the Map tab.
+- AI quests now include a DALL·E image shown beside the task.
 
 

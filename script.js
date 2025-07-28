@@ -406,6 +406,13 @@ function displayTasks() {
   dueTasks.forEach(t => {
     const div = document.createElement('div');
     div.className = 'task-card' + (completed.includes(t.id) ? ' completed' : '');
+    if (t.imageUrl) {
+      const img = document.createElement('img');
+      img.className = 'task-photo';
+      img.src = t.imageUrl;
+      img.alt = 'quest image';
+      div.appendChild(img);
+    }
     const textSpan = document.createElement('span');
     textSpan.textContent = t.text + (t.exactTime ? ` @ ${t.exactTime}` : '');
     const xpSpan = document.createElement('span');
@@ -604,8 +611,9 @@ async function generateQuestWithAI() {
   const data = await callOpenAI('chat/completions', payload);
   const text = data?.choices?.[0]?.message?.content?.trim();
   if (text) {
+    const imgUrl = await createImage(`illustration of ${text}`);
     const id = Date.now();
-    TM.tasks.push({ id, text, xp: 20 });
+    TM.tasks.push({ id, text, xp: 20, imageUrl: imgUrl });
     TM.saveTasks();
     displayTasks();
   }
