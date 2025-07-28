@@ -110,6 +110,14 @@ body.dark-mode .panel {
   align-items: center;
 }
 
+.task-photo {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 0.5rem;
+}
+
 .task-card.completed {
   background: #d4edda;
   text-decoration: line-through;
