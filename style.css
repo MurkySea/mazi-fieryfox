@@ -214,6 +214,26 @@ body.dark-mode .panel {
   color: #c47932;
   font-weight: bold;
 }
+.talk-btn {
+  margin-top: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+}
+.dialogue-history {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 0.5rem;
+}
+.prompt-buttons {
+  margin: 0.5rem 0;
+  display: flex;
+  gap: 0.5rem;
+}
+.prompt-btn {
+  flex: 1;
+  padding: 0.4rem;
+  font-size: 0.8rem;
+}
 
 /* Modal Styling (consolidated) */
 .modal {

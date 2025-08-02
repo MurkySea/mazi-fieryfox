@@ -283,6 +283,7 @@ function displayCompanionsUI() {
 
         const card = document.createElement('div');
         card.className = `companion-card ${rarity}`;
+        const id = name.toLowerCase().split(' ')[0];
         card.innerHTML = `
           <div class="companion-avatar" style="background-image: url('${imgUrl}');"></div>
           <div>
@@ -290,11 +291,21 @@ function displayCompanionsUI() {
             <div style="margin: 0.25em 0 0.3em 0">${stars}</div>
             <span class="rarity-badge">${rarity ? '★ ' + comp.Rarity : ''}</span>
             <div class="bond-level">Bond Lv ${bondLevel}</div>
+            <button class="talk-btn" data-companion="${id}">Talk</button>
           </div>
         `;
         card.addEventListener('click', () => {
           showCardFromData(comp, starCount);
         });
+        const talkBtn = card.querySelector('.talk-btn');
+        if (talkBtn) {
+          talkBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (window.openDialogueModal) {
+              window.openDialogueModal(id);
+            }
+          });
+        }
 
         list.appendChild(card);
       }
