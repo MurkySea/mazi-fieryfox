@@ -628,3 +628,90 @@ body.dark-mode .character-card {
 #eventListModal li {
   margin: 0.5rem 0;
 }
+
+/* Quest Log Styles */
+#tasks-section {
+  background: #f8f1e9 url('images/parchment_bg.jpg');
+  background-size: cover;
+}
+.quest-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.category-filters button {
+  padding: 0.3rem 0.6rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent-color);
+  cursor: pointer;
+}
+.category-filters button.active {
+  background: var(--accent-dark);
+  color: #fff;
+}
+.quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.quest-card {
+  background: #fffaf0;
+  border: 1px solid #e0d8c3;
+  border-radius: 8px;
+  padding: 0.8rem;
+  position: relative;
+  overflow: hidden;
+}
+.quest-card.completed {
+  text-decoration: line-through;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.badge {
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.75rem;
+  text-transform: capitalize;
+}
+.priority-high {
+  background: #c0392b;
+}
+.priority-medium {
+  background: #f39c12;
+}
+.priority-low {
+  background: #27ae60;
+}
+.complete-btn {
+  background: var(--accent-color);
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+.quest-rewards {
+  margin: 0.5rem 0;
+  display: flex;
+  gap: 1rem;
+  font-weight: bold;
+}
+.particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: var(--accent-color);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: particle 600ms ease-out forwards;
+}
+@keyframes particle {
+  from { opacity: 1; transform: translate(0,0) scale(1); }
+  to { opacity: 0; transform: translate(var(--x), var(--y)) scale(0); }
+}
+.typewriter {
+  font-family: 'Courier New', monospace;
+}
