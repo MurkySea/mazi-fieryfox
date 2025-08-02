@@ -74,6 +74,49 @@ function setCompletedTasks(arr) {
   localStorage.setItem('mazi_tasks', JSON.stringify(arr));
 }
 
+function getStreak() { return parseInt(localStorage.getItem('mazi_streak') || '0'); }
+function setStreak(s) { localStorage.setItem('mazi_streak', s); }
+function getLastCompletionDate() { return localStorage.getItem('mazi_last_completion_date'); }
+function setLastCompletionDate(d) { localStorage.setItem('mazi_last_completion_date', d); }
+
+function maybeResetStreak() {
+  const last = getLastCompletionDate();
+  if (!last) return;
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (last !== today && last !== yesterday) {
+    setStreak(0);
+  }
+}
+
+function updateStreakDisplay() {
+  const el = document.getElementById('streakCount');
+  if (el) el.textContent = getStreak();
+}
+
+function updateStreak() {
+  const today = new Date().toDateString();
+  const last = getLastCompletionDate();
+  let streak = getStreak();
+  if (last === today) return;
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (last === yesterday) streak += 1; else streak = 1;
+  setStreak(streak);
+  setLastCompletionDate(today);
+  updateStreakDisplay();
+  const bonus = streak * 5;
+  addXP(bonus);
+  let msg = `Streak ${streak}! +${bonus} XP`;
+  if (streak % 5 === 0) {
+    const coins = 10 * (streak / 5);
+    setCoins(getCoins() + coins);
+    const coinEl = document.getElementById('coinCount');
+    if (coinEl) coinEl.textContent = getCoins();
+    msg += ` and +${coins} coins`;
+  }
+  alert(msg);
+}
+
 function resetCompletedDaily() {
   const today = new Date().toISOString().split('T')[0];
   const last = localStorage.getItem('mazi_completed_reset_date');
@@ -528,6 +571,7 @@ function handleTaskCompletion() {
   if (document.querySelector('.companion-list')) {
     displayCompanionsUI();
   }
+  updateStreak();
   if (count % 10 === 0) {
     const bonus = 20;
     setCoins(getCoins() + bonus);
@@ -986,6 +1030,8 @@ function init() {
     localStorage.removeItem('mazi_coins');
     localStorage.removeItem('mazi_tasks');
     localStorage.removeItem('mazi_custom_tasks');
+    localStorage.removeItem('mazi_streak');
+    localStorage.removeItem('mazi_last_completion_date');
     setTimeout(() => location.reload(), 250);
   };
 
@@ -995,7 +1041,9 @@ function init() {
   ensureInitialUnlock();     // Unlock a starting companion
   displayChatMenu();         // Prepare chat UI
   initDarkMode();            // Apply saved theme
+  maybeResetStreak();        // Reset streak if needed
   updateXPBar();             // Fill XP bar
+  updateStreakDisplay();     // Show current streak
   updateMilestoneDisplay();  // Show completed tasks
   document.getElementById('coinCount').textContent = getCoins(); // Init coins
   displayTasks();            // Display tasks
@@ -1021,6 +1069,7 @@ if (typeof module !== 'undefined') {
     getInventory,
     shouldShowTaskToday,
     performGacha,
-    bondInteract
+    bondInteract,
+    updateStreak
   };
 }
