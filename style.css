@@ -449,6 +449,12 @@ body.dark-mode #bottom-nav button.active {
   gap: 0.5rem;
 }
 
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .chat-contact {
   background: #fff4dd;
   padding: 0.5rem;
