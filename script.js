@@ -198,6 +198,15 @@ function setInventory(inv) {
   localStorage.setItem('mazi_inventory', JSON.stringify(inv));
 }
 
+// -- Player Profile --
+function getPlayerProfile() {
+  return JSON.parse(localStorage.getItem('mazi_player_profile') || '{}');
+}
+
+function setPlayerProfile(profile) {
+  localStorage.setItem('mazi_player_profile', JSON.stringify(profile));
+}
+
 function addItem(name, qty = 1) {
   const inv = getInventory();
   inv[name] = (inv[name] || 0) + qty;
@@ -651,9 +660,14 @@ function promptForApiKey() {
 const MAX_CHAT_HISTORY = 10;
 
 async function sendMessageToChatGPT(companionId, message) {
-  const compData = companionBonds[companionId] || { name: companionId };
+  const compData = companionBonds[companionId] || currentChatCompanion || { name: companionId };
   const personaParts = [compData.name, compData.Title, compData.Personality, compData.Bio];
-  const persona = `You are ${personaParts.filter(Boolean).join('. ')}. Stay in character and keep replies concise.`;
+  const profile = getPlayerProfile();
+  if (profile.name) personaParts.push(`The player you are speaking with is named ${profile.name}`);
+  const prog = getProgress();
+  const bondLevel = prog.bonds[compData.name] || 0;
+  personaParts.push(`Your bond level with the player is ${bondLevel}. Become more familiar as the bond grows.`);
+  const persona = `You are ${personaParts.filter(Boolean).join('. ')}. Ask about the player and keep replies concise.`;
 
   const key = compData.name;
   const log = chatLogs[key] || [];
@@ -858,9 +872,17 @@ function openChat(comp) {
   history.innerHTML = '';
   const key = comp.Name || comp['Companion Name'];
   const log = chatLogs[key] || [];
-  if (nameEl) nameEl.textContent = key;
+  const prog = getProgress();
+  const bondLevel = prog.bonds[key] || 0;
+  if (nameEl) nameEl.textContent = `${key} (Bond Lv ${bondLevel})`;
+  const profile = getPlayerProfile();
   if (log.length === 0) {
-    const greet = `Hello, I'm ${comp.Name}. ${comp.Personality}`;
+    let greet = `Hello, I'm ${comp.Name}. ${comp.Personality}`;
+    if (profile.name) {
+      greet += ` It's good to chat with you again, ${profile.name}.`;
+    } else {
+      greet += ` What's your name?`;
+    }
     log.push({ s: comp.Name, t: greet });
   }
   log.forEach(entry => addChatMessage(entry.s, entry.t));
@@ -922,9 +944,21 @@ async function sendChat() {
     const id = (currentChatCompanion.Name || '')
       .toLowerCase()
       .split(' ')[0];
+    const profile = getPlayerProfile();
+    if (!profile.name) {
+      profile.name = msg;
+      setPlayerProfile(profile);
+    }
     let reply = await sendMessageToChatGPT(id, msg);
     if (!reply) reply = generateChatReply(currentChatCompanion);
     addChatMessage(currentChatCompanion.Name, reply);
+    const keyName = currentChatCompanion.Name || currentChatCompanion['Companion Name'];
+    let prog = getProgress();
+    prog.bonds[keyName] = (prog.bonds[keyName] || 0) + 1;
+    setProgress(prog);
+    increaseBond(id);
+    const nameEl = document.getElementById('chatCompanionName');
+    if (nameEl) nameEl.textContent = `${keyName} (Bond Lv ${prog.bonds[keyName]})`;
     localStorage.setItem('mazi_chat_logs', JSON.stringify(chatLogs));
   }
 }
