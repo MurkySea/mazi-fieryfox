@@ -103,6 +103,7 @@
     <section id="companions-section" class="main-section panel">
       <h2>Your Companions</h2>
       <div class="companion-list"></div>
+      <button id="openEventViewerBtn">📖 Story Events</button>
       <div id="companionModal" class="modal hidden">
         <div class="modal-box">
           <img id="cardImg" src="" alt="portrait" class="card-img" />
@@ -171,5 +172,27 @@
       <button onclick="closeBondModal()">💗 Respond</button>
     </div>
   </div>
+
+  <!-- STORY EVENT MODALS -->
+  <div id="eventListModal" class="modal hidden">
+    <div class="modal-box">
+      <h3>Story Events</h3>
+      <ul id="eventList"></ul>
+      <button id="closeEventListBtn">Close</button>
+    </div>
+  </div>
+
+  <div id="storyEventModal" class="modal hidden">
+    <div class="story-modal-content">
+      <img id="eventBackground" class="event-background" />
+      <img id="eventPortrait" class="event-portrait" />
+      <div id="eventDialogue" class="event-dialogue"></div>
+      <div id="eventChoices" class="event-choices"></div>
+      <button id="nextDialogueBtn" class="hidden">Next</button>
+    </div>
+  </div>
+
+  <!-- STORY EVENT SCRIPTS -->
+  <script type="module" src="eventUI.js"></script>
 </body>
 </html>
