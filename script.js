@@ -1052,7 +1052,8 @@ function init() {
   if (closeBtn) closeBtn.addEventListener('click', closeChat);
 
   // Add Task Button
-  document.getElementById("addTaskBtn").addEventListener("click", () => {
+  const addTaskBtn = document.getElementById("addTaskBtn");
+  if (addTaskBtn) addTaskBtn.addEventListener("click", () => {
     document.getElementById("taskModal").classList.remove("hidden");
   });
 
