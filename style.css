@@ -85,6 +85,11 @@ button {
   gap: 0.3rem;
 }
 
+.streak-counter {
+  font-weight: bold;
+  margin-left: 0.5rem;
+}
+
 /* Unified Panel Styling */
 .panel {
   background: #fffaf3;
