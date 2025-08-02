@@ -118,6 +118,16 @@
           <button onclick="hideCard()">Close</button>
         </div>
       </div>
+      <div id="dialogueModal" class="modal hidden">
+        <div class="modal-box">
+          <h3 id="dialogueCompanionName"></h3>
+          <div id="dialogueHistory" class="dialogue-history"></div>
+          <textarea id="playerMessage" rows="3" placeholder="Say something..."></textarea>
+          <div id="promptButtons" class="prompt-buttons"></div>
+          <button id="sendDialogueBtn">Send</button>
+          <button id="closeDialogueBtn">Close</button>
+        </div>
+      </div>
     </section>
 
     <!-- GACHA TAB -->
@@ -195,5 +205,6 @@
 
   <!-- STORY EVENT SCRIPTS -->
   <script type="module" src="eventUI.js"></script>
+  <script type="module" src="dialogueUI.js"></script>
 </body>
 </html>
