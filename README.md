@@ -34,6 +34,7 @@ With a key set you can:
 - Generate AI quests from the Tasks tab.
 - Generate AI companions from the Gacha tab.
 - Generate an AI story from the Map tab.
+- AI stories now persist in local storage so you can continue them across sessions.
 - AI quests now include a DALL·E image shown beside the task.
 
 

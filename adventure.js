@@ -38,7 +38,33 @@ let currentNode = 'start';
 let playerHP = 10;
 let enemyHP = 0;
 let nextAfterCombat = null;
-let storyHistory = [];
+function loadStoryHistory() {
+  if (typeof localStorage === 'undefined') return [];
+  try {
+    return JSON.parse(localStorage.getItem('ai_story_history') || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function saveStoryHistory() {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem('ai_story_history', JSON.stringify(storyHistory));
+}
+
+let storyHistory = loadStoryHistory();
+
+function renderStoredStory() {
+  const storyEl = document.getElementById('storyText');
+  const inputBox = document.getElementById('storyInputBox');
+  if (!storyEl || !inputBox || storyHistory.length === 0) return;
+  storyEl.innerHTML = storyHistory
+    .filter(m => m.role === 'assistant')
+    .map(m => `<p>${m.content}</p>`)
+    .join('');
+  inputBox.classList.remove('hidden');
+  storyEl.scrollTop = storyEl.scrollHeight;
+}
 
 function showNode(id) {
   currentNode = id;
@@ -104,6 +130,7 @@ function startCombat(info) {
 
 function startAdventure() {
   storyHistory = [];
+  saveStoryHistory();
   const inputBox = document.getElementById('storyInputBox');
   if (inputBox) inputBox.classList.add('hidden');
   playerHP = 10;
@@ -128,6 +155,7 @@ async function generateStoryWithAI() {
     if (storyEl) storyEl.innerHTML = `<p>${text}</p>`;
     if (choiceEl) choiceEl.innerHTML = '';
     if (inputBox) inputBox.classList.remove('hidden');
+    saveStoryHistory();
   }
 }
 
@@ -148,10 +176,12 @@ async function continueAIStory() {
     p.textContent = text;
     storyEl.appendChild(p);
     storyEl.scrollTop = storyEl.scrollHeight;
+    saveStoryHistory();
   }
 }
 
 if (typeof window !== 'undefined') {
+  renderStoredStory();
   window.startAdventure = startAdventure;
   window.generateStoryWithAI = generateStoryWithAI;
   window.continueAIStory = continueAIStory;
