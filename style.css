@@ -541,3 +541,64 @@ body.dark-mode .character-card {
   background: #2c2c2c;
   color: #eee;
 }
+
+/* Story Event System */
+#storyEventModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#storyEventModal .story-modal-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.event-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.event-portrait {
+  position: absolute;
+  bottom: 0;
+  right: 10%;
+  width: 30%;
+}
+
+.event-dialogue {
+  position: absolute;
+  bottom: 20%;
+  left: 5%;
+  right: 5%;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.event-choices {
+  position: absolute;
+  bottom: 5%;
+  left: 5%;
+  right: 5%;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+#eventListModal ul {
+  list-style: none;
+  padding: 0;
+}
+
+#eventListModal li {
+  margin: 0.5rem 0;
+}
