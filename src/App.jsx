@@ -374,6 +374,18 @@ function SectionTitle({ children, dim }) {
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const [keys, setKeys] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('msc_keys') || '{}'); } catch { return {}; }
+  });
+
+  function saveKey(k, v) {
+    setKeys(prev => {
+      const next = { ...prev, [k]: v };
+      try { localStorage.setItem('msc_keys', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
+
   const [state, setState] = useState(() => {
     try {
       const raw = localStorage.getItem('msc_v1');
@@ -455,9 +467,11 @@ export default function App() {
     set(s => ({ generatingImage: { ...s.generatingImage, [companion.id]: true } }));
     try {
       const prompt = `anime style portrait, ${companion.race.toLowerCase()} girl, ${companion.hair} hair, ${companion.eyes} eyes, ${companion.body} build, ${companion.class.toLowerCase()} dark fantasy outfit, dramatic lighting, beautiful, detailed, masterpiece`;
+      const imgHeaders = { 'Content-Type': 'application/json' };
+      if (keys.xai) imgHeaders['x-xai-key'] = keys.xai;
       const res  = await fetch('/api/image', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: imgHeaders,
         body: JSON.stringify({ prompt, model: 'grok-2-image', n: 1, response_format: 'url' }),
       });
       const data = await res.json();
@@ -477,9 +491,11 @@ export default function App() {
     const haremNames = state.companions.filter(c => c.id !== companion.id).map(c => c.name).join(', ');
     const intimacyName = INTIMACY[companion.intimacy]?.name || 'Stranger';
     try {
+      const dlgHeaders = { 'Content-Type': 'application/json' };
+      if (keys.anthropic) dlgHeaders['x-anthropic-key'] = keys.anthropic;
       const res = await fetch('/api/dialogue', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: dlgHeaders,
         body: JSON.stringify({
           model: 'claude-opus-4-5',
           max_tokens: 200,
@@ -685,9 +701,17 @@ export default function App() {
             <div style={{ fontFamily: 'Cinzel Decorative, serif', color: S.gold, fontSize: 15, lineHeight: 1.2 }}>Murky Sea Chronicles</div>
             <div style={{ fontSize: 11, color: S.textDim }}>Valdris · {state.player.name} · {curLevel.title}</div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ color: S.gold, fontFamily: 'Cinzel, serif', fontWeight: 700, fontSize: 14 }}>⚡ Lv {curLevel.level}</div>
-            <div style={{ color: S.gold, fontSize: 12 }}>◈ {state.player.gold}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ color: S.gold, fontFamily: 'Cinzel, serif', fontWeight: 700, fontSize: 14 }}>⚡ Lv {curLevel.level}</div>
+              <div style={{ color: S.gold, fontSize: 12 }}>◈ {state.player.gold}</div>
+            </div>
+            <button onClick={() => set({ activeTab: state.activeTab === 'settings' ? 'warplan' : 'settings' })} style={{
+              background: state.activeTab === 'settings' ? S.gold : 'none',
+              border: `1px solid ${state.activeTab === 'settings' ? S.gold : S.border}`,
+              color: state.activeTab === 'settings' ? S.bg : S.textDim,
+              borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 16, lineHeight: 1,
+            }}>⚙️</button>
           </div>
         </div>
         <Bar pct={xpPct} color={S.gold} height={4} />
@@ -1092,6 +1116,50 @@ export default function App() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* ══════════ SETTINGS ══════════ */}
+        {state.activeTab === 'settings' && (
+          <div>
+            <h2 style={{ fontFamily: 'Cinzel, serif', color: S.gold, marginTop: 0, marginBottom: 16, fontSize: 18 }}>⚙️ Settings</h2>
+
+            <div style={card}>
+              <SectionTitle>API KEYS</SectionTitle>
+              <p style={{ fontSize: 12, color: S.textDim, marginTop: 0, marginBottom: 16 }}>
+                Keys are saved to your device only and sent directly to the API proxies. Required for portrait generation and companion dialogue.
+              </p>
+
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12, color: S.text, marginBottom: 6, fontFamily: 'Cinzel, serif' }}>
+                  xAI Key <span style={{ color: S.textDim, fontFamily: 'Crimson Text, serif' }}>(Portrait Generation)</span>
+                </div>
+                <input
+                  type="password"
+                  value={keys.xai || ''}
+                  onChange={e => saveKey('xai', e.target.value)}
+                  placeholder="xai-..."
+                  style={{ width: '100%', background: S.bg, border: `1px solid ${keys.xai ? S.green : S.border}`, color: S.text, borderRadius: 6, padding: '8px 10px', fontFamily: 'monospace', fontSize: 13, boxSizing: 'border-box' }}
+                />
+                {keys.xai && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Saved</div>}
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12, color: S.text, marginBottom: 6, fontFamily: 'Cinzel, serif' }}>
+                  Anthropic Key <span style={{ color: S.textDim, fontFamily: 'Crimson Text, serif' }}>(Companion Dialogue)</span>
+                </div>
+                <input
+                  type="password"
+                  value={keys.anthropic || ''}
+                  onChange={e => saveKey('anthropic', e.target.value)}
+                  placeholder="sk-ant-..."
+                  style={{ width: '100%', background: S.bg, border: `1px solid ${keys.anthropic ? S.green : S.border}`, color: S.text, borderRadius: 6, padding: '8px 10px', fontFamily: 'monospace', fontSize: 13, boxSizing: 'border-box' }}
+                />
+                {keys.anthropic && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Saved</div>}
+              </div>
+
+              <Btn ghost small onClick={() => { setKeys({}); localStorage.removeItem('msc_keys'); }}>Clear Keys</Btn>
             </div>
           </div>
         )}
