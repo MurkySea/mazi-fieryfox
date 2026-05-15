@@ -606,11 +606,10 @@ export default function App() {
     try {
       const prompt = buildCompanionPrompt(companion, ot);
       const negative_prompt = buildNegativePrompt(ot);
-      const headers = { 'Content-Type': 'application/json' };
-      if (keys.novelai) headers['x-novelai-key'] = keys.novelai.trim();
       const res = await fetch('/api/image', {
-        method: 'POST', headers,
-        body: JSON.stringify({ prompt, negative_prompt, cacheKey: cKey }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, negative_prompt, cacheKey: cKey, novelaiKey: keys.novelai?.trim() }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
@@ -630,11 +629,10 @@ export default function App() {
     setGeneratingScene(p => ({ ...p, [id]: true }));
     try {
       const prompt = type === 'region' ? buildRegionPrompt(id) : buildBossPrompt(id);
-      const headers = { 'Content-Type': 'application/json' };
-      if (keys.novelai) headers['x-novelai-key'] = keys.novelai.trim();
       const res = await fetch('/api/scene', {
-        method: 'POST', headers,
-        body: JSON.stringify({ prompt, width: 1216, height: 832, cacheKey: cKey }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, width: 1216, height: 832, cacheKey: cKey, novelaiKey: keys.novelai?.trim() }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error);
@@ -1460,11 +1458,10 @@ export default function App() {
                 <div style={{ marginTop: 8 }}>
                   <Btn ghost small onClick={async () => {
                     try {
-                      const headers = { 'Content-Type': 'application/json' };
-                      if (keys.novelai) headers['x-novelai-key'] = keys.novelai.trim();
                       const res = await fetch('/api/image', {
-                        method: 'POST', headers,
-                        body: JSON.stringify({ prompt: 'best quality, 1girl, simple background, test', width: 64, height: 64 }),
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt: 'best quality, 1girl, simple background, test', width: 512, height: 512, novelaiKey: keys.novelai?.trim() }),
                       });
                       const data = await res.json();
                       if (data.error) alert('Error: ' + data.error);

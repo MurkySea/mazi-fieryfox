@@ -5,10 +5,9 @@ const NAI_NEGATIVE = "lowres, bad anatomy, bad hands, text, error, missing finge
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const apiKey = req.headers['x-novelai-key'] || process.env.NOVELAI_KEY;
+  const { prompt, negative_prompt, width = 1216, height = 832, cacheKey, novelaiKey } = req.body;
+  const apiKey = novelaiKey || req.headers['x-novelai-key'] || process.env.NOVELAI_KEY;
   if (!apiKey) return res.status(500).json({ error: 'NOVELAI_KEY not configured' });
-
-  const { prompt, negative_prompt, width = 1216, height = 832, cacheKey } = req.body;
 
   if (cacheKey && serverCache.has(cacheKey)) {
     return res.status(200).json({ b64: serverCache.get(cacheKey), mime: 'image/png', cached: true });
