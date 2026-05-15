@@ -472,13 +472,15 @@ export default function App() {
       const res  = await fetch('/api/image', {
         method: 'POST',
         headers: imgHeaders,
-        body: JSON.stringify({ prompt, model: 'grok-2-image', n: 1, response_format: 'url' }),
+        body: JSON.stringify({ prompt, model: 'grok-2-image', n: 1, response_format: 'b64_json' }),
       });
       const data = await res.json();
-      if (data?.data?.[0]?.url) {
+      const b64 = data?.data?.[0]?.b64_json;
+      if (b64) {
+        const dataUrl = `data:image/jpeg;base64,${b64}`;
         setState(s => ({
           ...s,
-          companions: s.companions.map(c => c.id === companion.id ? { ...c, aiImage: data.data[0].url } : c),
+          companions: s.companions.map(c => c.id === companion.id ? { ...c, aiImage: dataUrl } : c),
         }));
       }
     } catch (e) { console.error('Image gen error:', e); }
@@ -676,6 +678,7 @@ export default function App() {
     { id: 'warplan',  label: 'War Plan', icon: '⚔️' },
     { id: 'rituals',  label: 'Rituals',  icon: '🔥' },
     { id: 'party',    label: 'Party',    icon: '💎' },
+    { id: 'gallery',  label: 'Gallery',  icon: '🖼️' },
     { id: 'world',    label: 'World',    icon: '🗺️' },
     { id: 'bosses',   label: 'Bosses',   icon: '💀' },
     { id: 'shop',     label: 'Shop',     icon: '🏪' },
@@ -947,6 +950,60 @@ export default function App() {
                   </div>
                 )}
               </>
+            )}
+          </div>
+        )}
+
+        {/* ══════════ GALLERY ══════════ */}
+        {state.activeTab === 'gallery' && (
+          <div>
+            <h2 style={{ fontFamily: 'Cinzel, serif', color: S.gold, marginTop: 0, marginBottom: 4, fontSize: 18 }}>🖼️ Portrait Gallery</h2>
+            <div style={{ fontSize: 13, color: S.textDim, marginBottom: 16, fontStyle: 'italic' }}>AI-generated portraits of your companions.</div>
+
+            {state.companions.filter(c => c.aiImage).length === 0 ? (
+              <div style={{ ...card, textAlign: 'center', padding: 32 }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>🎨</div>
+                <div style={{ fontFamily: 'Cinzel, serif', color: S.textDim, fontSize: 14, marginBottom: 8 }}>No portraits yet</div>
+                <div style={{ fontSize: 12, color: S.textDim }}>Go to Party, select a companion, and tap ✨ Portrait to generate one.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {state.companions.filter(c => c.aiImage).map(c => (
+                  <div key={c.id} style={{ ...card, padding: 10, cursor: 'pointer' }}
+                    onClick={() => { set({ selectedCompanion: c.id, activeTab: 'party' }); }}>
+                    <img
+                      src={c.aiImage}
+                      alt={c.name}
+                      style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 8, display: 'block', marginBottom: 8 }}
+                    />
+                    <div style={{ fontFamily: 'Cinzel, serif', color: S.gold, fontSize: 12, marginBottom: 2 }}>{c.name}</div>
+                    <div style={{ fontSize: 11, color: S.textDim }}>{c.race} · {c.class}</div>
+                    <div style={{ fontSize: 11, color: INTIMACY[c.intimacy]?.color, marginTop: 2 }}>{INTIMACY[c.intimacy]?.name}</div>
+                    <Btn ghost small onClick={e => { e.stopPropagation(); set({ selectedCompanion: c.id }); generateImage(c); }} disabled={!!state.generatingImage[c.id]} style={{ marginTop: 6 }}>
+                      {state.generatingImage[c.id] ? '...' : '↺ Regenerate'}
+                    </Btn>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Companions without portraits */}
+            {state.companions.filter(c => !c.aiImage).length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <SectionTitle dim>WITHOUT PORTRAIT</SectionTitle>
+                {state.companions.filter(c => !c.aiImage).map(c => (
+                  <div key={c.id} style={{ ...card, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <CompanionPortrait companion={c} size={52} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: 'Cinzel, serif', color: S.gold, fontSize: 13 }}>{c.name}</div>
+                      <div style={{ fontSize: 11, color: S.textDim }}>{c.race} · {c.class}</div>
+                    </div>
+                    <Btn ghost small disabled={!!state.generatingImage[c.id]} onClick={() => { set({ selectedCompanion: c.id }); generateImage(c); }}>
+                      {state.generatingImage[c.id] ? '...' : '✨ Generate'}
+                    </Btn>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
