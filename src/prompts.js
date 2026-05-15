@@ -18,6 +18,7 @@ const OUTFIT_TAGS = {
   work:     'elegant coat, professional attire, confident pose, soft lighting, indoor setting',
   rest:     'casual comfortable dress, relaxed sitting pose, soft smile, warm lighting, cozy atmosphere',
   intimate: 'elegant evening gown, soft expression, gentle blush, close-up portrait, intimate lighting, romantic atmosphere, detailed eyes',
+  bonded:   'white wedding dress, flowing bridal gown, floral crown, bridal veil, soft petals, sacred ceremony, ethereal soft lighting, dreamy romantic atmosphere, emotional devotion',
 };
 
 const INTIMACY_TAGS = {
@@ -26,7 +27,7 @@ const INTIMACY_TAGS = {
   2: 'soft smile, direct eye contact',
   3: 'warm smile, gentle gaze, slight blush',
   4: 'devoted expression, loving eyes, soft blush',
-  5: 'radiant loving smile, intense eye contact, warm blush',
+  5: 'radiant loving smile, intense eye contact, warm blush, tears of joy',
 };
 
 const REGION_BG = {
@@ -46,6 +47,14 @@ const BOSS_SCENE = {
   isolation_shade: 'empty foggy forest clearing, bare trees, lonely moonlight, mist, somber solitude',
   void_sovereign:  'primordial void throne, swirling cosmic dark energy, floating dark crystal pillars, apocalyptic',
 };
+
+export function outfitForIntimacy(level) {
+  if (level >= 5) return 'bonded';
+  if (level >= 4) return 'intimate';
+  if (level >= 3) return 'rest';
+  if (level >= 2) return 'work';
+  return 'combat';
+}
 
 export function buildCompanionPrompt(companion, outfit = 'combat') {
   const raceTags = RACE_TAGS[companion.race] || '';

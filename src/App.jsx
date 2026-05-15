@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { buildCompanionPrompt, buildNegativePrompt, buildRegionPrompt, buildBossPrompt, portraitKey, regionKey, bossKey } from './prompts.js';
+import { buildCompanionPrompt, buildNegativePrompt, buildRegionPrompt, buildBossPrompt, outfitForIntimacy, portraitKey, regionKey, bossKey } from './prompts.js';
 import { getImg, setImg, clearImgCache } from './cache.js';
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
@@ -653,7 +653,6 @@ export default function App() {
   const [driveStatus, setDriveStatus] = useState('');
   const [sceneImages, setSceneImages] = useState({});
   const [generatingScene, setGeneratingScene] = useState({});
-  const [selectedOutfit, setSelectedOutfit] = useState('combat');
 
   function saveKey(k, v) {
     setKeys(prev => {
@@ -793,7 +792,7 @@ export default function App() {
 
   // ── API: AI Image ─────────────────────────────────────────────────────────
   async function generatePortrait(companion, outfit) {
-    const ot = outfit || selectedOutfit;
+    const ot = outfit || outfitForIntimacy(companion.intimacy);
     const cKey = portraitKey(companion, ot);
     const cached = getImg(cKey);
     if (cached) {
@@ -843,6 +842,9 @@ export default function App() {
 
   // ── API: AI Dialogue ──────────────────────────────────────────────────────
   async function speak(companion, context = '') {
+    if (!companion.aiImage && !state.generatingImage?.[companion.id]) {
+      generatePortrait(companion, outfitForIntimacy(companion.intimacy));
+    }
     set({ generatingDialogue: true });
     const haremNames = state.companions.filter(c => c.id !== companion.id).map(c => c.name).join(', ');
     const intimacyName = INTIMACY[companion.intimacy]?.name || 'Stranger';
@@ -933,17 +935,22 @@ export default function App() {
   // ── Party actions ─────────────────────────────────────────────────────────
   function giftBond(companionId, amount = 10) {
     const bonus = Math.round(amount * fx.bondMultiplier);
+    let levelUpCompanion = null;
     setState(s => {
       const updated = s.companions.map(c => {
         if (c.id !== companionId) return c;
         const newBond     = c.bond + bonus;
         const newIntimacy = intimacyForBond(newBond);
+        if (newIntimacy > c.intimacy) levelUpCompanion = { ...c, intimacy: newIntimacy };
         return { ...c, bond: newBond, intimacy: newIntimacy };
       });
       const maxInti = Math.max(...updated.map(c => c.intimacy));
       return { ...s, companions: updated, stats: { ...s.stats, maxIntimacy: maxInti } };
     });
     checkAchievements();
+    if (levelUpCompanion) {
+      setTimeout(() => generatePortrait(levelUpCompanion, outfitForIntimacy(levelUpCompanion.intimacy)), 100);
+    }
   }
 
   function summonCompanion() {
@@ -953,7 +960,9 @@ export default function App() {
       ...s,
       player:     { ...s.player, gold: s.player.gold - 300 },
       companions: [...s.companions, newC],
+      selectedCompanion: newC.id,
     }));
+    setTimeout(() => generatePortrait(newC, 'combat'), 100);
   }
 
   // ── Boss actions ──────────────────────────────────────────────────────────
@@ -1380,32 +1389,12 @@ export default function App() {
             {/* ── Selected companion details ── */}
             {selComp && (
               <>
-                {/* Portrait generation */}
-                <div style={{ ...card, marginBottom: 10 }}>
-                  <SectionTitle>PORTRAIT</SectionTitle>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
-                    {['combat','work','rest','intimate'].map(o => (
-                      <button key={o} onClick={() => setSelectedOutfit(o)} style={{
-                        padding: '4px 11px', borderRadius: 8, fontSize: 11, fontFamily: 'Cinzel, serif', cursor: 'pointer',
-                        background: selectedOutfit === o ? S.gold : 'transparent',
-                        border: `1px solid ${selectedOutfit === o ? S.gold : S.border}`,
-                        color: selectedOutfit === o ? S.bg : S.textDim,
-                        transition: 'all 0.15s',
-                      }}>{o}</button>
-                    ))}
+                {/* Portrait status */}
+                {state.imageError?.[selComp.id] && (
+                  <div style={{ ...card, marginBottom: 10, background: '#1a0808', borderColor: S.red }}>
+                    <div style={{ fontSize: 12, color: S.red }}>Portrait error: {state.imageError[selComp.id]}</div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <Btn ghost small disabled={!!state.generatingImage[selComp.id]} onClick={() => generatePortrait(selComp, selectedOutfit)}>
-                      {state.generatingImage[selComp.id] ? '⏳ Generating…' : '✨ Generate'}
-                    </Btn>
-                    <Btn ghost small disabled={state.generatingDialogue} onClick={() => speak(selComp, 'Comment on the other companions in the harem, with your personality.')}>
-                      Harem Talk
-                    </Btn>
-                  </div>
-                  {state.imageError?.[selComp.id] && (
-                    <div style={{ fontSize: 10, color: S.red, marginTop: 6 }}>{state.imageError[selComp.id]}</div>
-                  )}
-                </div>
+                )}
 
                 {/* Lore */}
                 <div style={{ ...card, marginBottom: 10 }}>
@@ -1493,9 +1482,6 @@ export default function App() {
                     <div style={{ fontSize: 11, color: S.textDim }}>{c.race} · {c.class}</div>
                     <div style={{ fontSize: 11, color: INTIMACY[c.intimacy]?.color, marginTop: 2, marginBottom: 6 }}>{INTIMACY[c.intimacy]?.name}</div>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      <Btn ghost small onClick={e => { e.stopPropagation(); generatePortrait(c, selectedOutfit); }} disabled={!!state.generatingImage[c.id]}>
-                        {state.generatingImage[c.id] ? '...' : '↺'}
-                      </Btn>
                       {keys.googleClientId && !c.driveFileId && (
                         <Btn ghost small onClick={e => { e.stopPropagation(); backupSingleToDrive(c); }} disabled={!!driveUploading[c.id]} color={S.blue}>
                           {driveUploading[c.id] ? '...' : '☁'}
@@ -1525,9 +1511,9 @@ export default function App() {
                       <div style={{ fontFamily: 'Cinzel, serif', color: S.gold, fontSize: 13 }}>{c.name}</div>
                       <div style={{ fontSize: 11, color: S.textDim }}>{c.race} · {c.class}</div>
                     </div>
-                    <Btn ghost small disabled={!!state.generatingImage[c.id]} onClick={() => generatePortrait(c, selectedOutfit)}>
-                      {state.generatingImage[c.id] ? '...' : '✨ Generate'}
-                    </Btn>
+                    <div style={{ fontSize: 11, color: S.textDim, fontStyle: 'italic' }}>
+                      {state.generatingImage[c.id] ? '⏳ Painting…' : '📖 Speak to reveal'}
+                    </div>
                   </div>
                 ))}
               </div>
