@@ -648,26 +648,28 @@ export default function App() {
     return () => style.remove();
   }, []);
 
-  const [keys, setKeys] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('msc_keys') || '{}'); } catch { return {}; }
+  const [googleClientId, setGoogleClientId] = useState(() => {
+    try { return localStorage.getItem('msc_gcid') || ''; } catch { return ''; }
   });
+  const [apiStatus, setApiStatus] = useState(null); // { novelai, anthropic } from /api/status
   const [gToken, setGToken] = useState(null);
   const [driveUploading, setDriveUploading] = useState({});
   const [driveStatus, setDriveStatus] = useState('');
   const [sceneImages, setSceneImages] = useState({});
   const [generatingScene, setGeneratingScene] = useState({});
 
-  function cleanKey(v) {
-    return (v || '').replace(/[^\x20-\x7E]/g, '').trim();
+  function saveGoogleClientId(v) {
+    const clean = (v || '').replace(/[^\x20-\x7E]/g, '').trim();
+    setGoogleClientId(clean);
+    try { localStorage.setItem('msc_gcid', clean); } catch {}
   }
 
-  function saveKey(k, v) {
-    const clean = cleanKey(v);
-    setKeys(prev => {
-      const next = { ...prev, [k]: clean };
-      try { localStorage.setItem('msc_keys', JSON.stringify(next)); } catch {}
-      return next;
-    });
+  async function checkApiStatus() {
+    try {
+      const res = await fetch('/api/status');
+      const data = await res.json();
+      setApiStatus(data);
+    } catch { setApiStatus({ novelai: false, anthropic: false, error: true }); }
   }
 
   const [state, setState] = useState(() => {
@@ -754,7 +756,7 @@ export default function App() {
 
   // ── Google Drive backup ───────────────────────────────────────────────────
   async function getToken() {
-    const clientId = keys.googleClientId?.trim();
+    const clientId = googleClientId.trim();
     if (!clientId) throw new Error('Add your Google Client ID in Settings first.');
     if (!clientId.endsWith('.apps.googleusercontent.com')) throw new Error('Invalid Client ID — should end in .apps.googleusercontent.com');
     await loadGIS();
@@ -867,7 +869,7 @@ export default function App() {
       const res = await fetch('/api/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, negative_prompt, cacheKey: cKey, novelaiKey: cleanKey(keys.novelai) }),
+        body: JSON.stringify({ prompt, negative_prompt, cacheKey: cKey }),
       });
       const text = await res.text();
       let data;
@@ -892,7 +894,7 @@ export default function App() {
       const res = await fetch('/api/scene', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, width: 1216, height: 832, cacheKey: cKey, novelaiKey: cleanKey(keys.novelai) }),
+        body: JSON.stringify({ prompt, width: 1216, height: 832, cacheKey: cKey }),
       });
       const sText = await res.text();
       let data;
@@ -927,7 +929,6 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          anthropicKey: cleanKey(keys.anthropic),
           system,
           messages,
           extractMemory: (lb.relationship.totalConversations % 3 === 0),
@@ -1559,7 +1560,7 @@ export default function App() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <h2 style={{ fontFamily: 'Cinzel, serif', color: S.gold, margin: 0, fontSize: 18 }}>🖼️ Portrait Gallery</h2>
-              {keys.googleClientId && state.companions.some(c => c.aiImage) && (
+              {googleClientId && state.companions.some(c => c.aiImage) && (
                 <Btn ghost small onClick={backupAllToDrive}>☁ Backup All</Btn>
               )}
             </div>
@@ -1595,7 +1596,7 @@ export default function App() {
                     <div style={{ fontSize: 11, color: S.textDim }}>{c.race} · {c.class}</div>
                     <div style={{ fontSize: 11, color: INTIMACY[c.intimacy]?.color, marginTop: 2, marginBottom: 6 }}>{INTIMACY[c.intimacy]?.name}</div>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      {keys.googleClientId && !c.driveFileId && (
+                      {googleClientId && !c.driveFileId && (
                         <Btn ghost small onClick={e => { e.stopPropagation(); backupSingleToDrive(c); }} disabled={!!driveUploading[c.id]} color={S.blue}>
                           {driveUploading[c.id] ? '...' : '☁'}
                         </Btn>
@@ -1632,7 +1633,7 @@ export default function App() {
               </div>
             )}
 
-            {!keys.googleClientId && (
+            {!googleClientId && (
               <div style={{ ...card, marginTop: 16, background: S.bgDeep, textAlign: 'center' }}>
                 <div style={{ fontSize: 12, color: S.textDim, marginBottom: 8 }}>Add a Google Client ID in ⚙️ Settings to enable Drive backup.</div>
                 <Btn ghost small onClick={() => set({ activeTab: 'settings' })} color={S.blue}>Open Settings</Btn>
@@ -1869,66 +1870,64 @@ export default function App() {
           <div>
             <h2 style={{ fontFamily: 'Cinzel, serif', color: S.gold, marginTop: 0, marginBottom: 16, fontSize: 18 }}>⚙️ Settings</h2>
 
+            {/* API Status */}
             <div style={card}>
-              <SectionTitle>API KEYS</SectionTitle>
-              <p style={{ fontSize: 12, color: S.textDim, marginTop: 0, marginBottom: 16 }}>
-                Keys are saved to your device only and sent directly to the API proxies. Required for portrait/scene generation (NovelAI) and companion dialogue (Anthropic).
+              <SectionTitle>SERVER API STATUS</SectionTitle>
+              <p style={{ fontSize: 12, color: S.textDim, marginTop: 0, marginBottom: 14 }}>
+                API keys are stored securely as Vercel environment variables — never on your device.
+                Tap Check to verify the server can reach each service.
               </p>
-
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, color: S.text, marginBottom: 6, fontFamily: 'Cinzel, serif' }}>
-                  NovelAI Key <span style={{ color: S.textDim, fontFamily: 'Crimson Text, serif' }}>(Portrait &amp; Scene Generation)</span>
-                </div>
-                <input
-                  type="password"
-                  value={keys.novelai || ''}
-                  onChange={e => saveKey('novelai', e.target.value.trim())}
-                  placeholder="pst-..."
-                  style={{ width: '100%', background: S.bg, border: `1px solid ${keys.novelai ? S.green : S.border}`, color: S.text, borderRadius: 6, padding: '8px 10px', fontFamily: 'monospace', fontSize: 13, boxSizing: 'border-box' }}
-                />
-                {keys.novelai && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Saved</div>}
-                <div style={{ marginTop: 8 }}>
-                  <Btn ghost small onClick={async () => {
-                    const key = cleanKey(keys.novelai);
-                    if (!key) { alert('No key saved yet.'); return; }
-                    try {
-                      const res = await fetch('/api/image', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt: 'best quality, 1girl, simple background, test', width: 512, height: 512, novelaiKey: key }),
-                      });
-                      const text = await res.text();
-                      let data;
-                      try { data = JSON.parse(text); } catch {
-                        alert(`Server returned non-JSON (${res.status}):\n${text.slice(0, 300)}`);
-                        return;
-                      }
-                      if (data.error) alert(`API Error (${res.status}): ${data.error}`);
-                      else alert('✓ NovelAI key works!');
-                    } catch (e) {
-                      alert(`Fetch failed [${e.name}]: ${e.message}`);
-                    }
-                  }}>Test Key</Btn>
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+                {[
+                  { key: 'novelai',   label: 'NovelAI',   hint: 'Portrait & Scene Generation' },
+                  { key: 'anthropic', label: 'Anthropic', hint: 'Companion Dialogue' },
+                ].map(({ key, label, hint }) => {
+                  const ok  = apiStatus?.[key] === true;
+                  const bad = apiStatus?.[key] === false;
+                  return (
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                        background: apiStatus == null ? S.border : ok ? S.green : S.red,
+                      }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontFamily: 'Cinzel, serif', color: S.text }}>{label}</div>
+                        <div style={{ fontSize: 11, color: S.textDim }}>{hint}</div>
+                      </div>
+                      <div style={{ fontSize: 11, color: ok ? S.green : bad ? S.red : S.textDim, fontFamily: 'Cinzel, serif' }}>
+                        {apiStatus == null ? '—' : ok ? '✓ Set' : '✗ Missing'}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, color: S.text, marginBottom: 6, fontFamily: 'Cinzel, serif' }}>
-                  Anthropic Key <span style={{ color: S.textDim, fontFamily: 'Crimson Text, serif' }}>(Companion Dialogue)</span>
-                </div>
-                <input
-                  type="password"
-                  value={keys.anthropic || ''}
-                  onChange={e => saveKey('anthropic', e.target.value.trim())}
-                  placeholder="sk-ant-..."
-                  style={{ width: '100%', background: S.bg, border: `1px solid ${keys.anthropic ? S.green : S.border}`, color: S.text, borderRadius: 6, padding: '8px 10px', fontFamily: 'monospace', fontSize: 13, boxSizing: 'border-box' }}
-                />
-                {keys.anthropic && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Saved</div>}
-              </div>
-
-              <Btn ghost small onClick={() => { setKeys({}); localStorage.removeItem('msc_keys'); }}>Clear Keys</Btn>
+              <Btn ghost small onClick={checkApiStatus}>Check Status</Btn>
+              {apiStatus?.error && (
+                <div style={{ fontSize: 11, color: S.red, marginTop: 8 }}>Could not reach /api/status — check Vercel deployment.</div>
+              )}
             </div>
 
+            {/* Vercel setup instructions */}
+            <div style={card}>
+              <SectionTitle>VERCEL SETUP</SectionTitle>
+              <p style={{ fontSize: 12, color: S.textDim, marginTop: 0, marginBottom: 12 }}>
+                To enable portrait generation and companion dialogue, add these environment variables in your Vercel project dashboard under Settings → Environment Variables:
+              </p>
+              {[
+                { name: 'NOVELAI_KEY',   hint: 'Your NovelAI bearer token (starts with pst-)' },
+                { name: 'ANTHROPIC_KEY', hint: 'Your Anthropic API key (starts with sk-ant-)' },
+              ].map(({ name, hint }) => (
+                <div key={name} style={{ marginBottom: 12 }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 13, color: S.gold, background: '#060a14', padding: '6px 10px', borderRadius: 6, marginBottom: 4 }}>{name}</div>
+                  <div style={{ fontSize: 11, color: S.textDim }}>{hint}</div>
+                </div>
+              ))}
+              <p style={{ fontSize: 11, color: S.textDim, marginBottom: 0 }}>
+                After adding variables, redeploy the project for changes to take effect.
+              </p>
+            </div>
+
+            {/* Google Drive backup */}
             <div style={card}>
               <SectionTitle>GOOGLE DRIVE BACKUP</SectionTitle>
               <p style={{ fontSize: 12, color: S.textDim, marginTop: 0, marginBottom: 16 }}>
@@ -1938,13 +1937,26 @@ export default function App() {
                 <div style={{ fontSize: 12, color: S.text, marginBottom: 6, fontFamily: 'Cinzel, serif' }}>Google OAuth Client ID</div>
                 <input
                   type="text"
-                  value={keys.googleClientId || ''}
-                  onChange={e => saveKey('googleClientId', e.target.value.trim())}
+                  value={googleClientId}
+                  onChange={e => saveGoogleClientId(e.target.value)}
                   placeholder="123456789-abc.apps.googleusercontent.com"
-                  style={{ width: '100%', background: S.bg, border: `1px solid ${keys.googleClientId ? S.green : S.border}`, color: S.text, borderRadius: 6, padding: '8px 10px', fontFamily: 'monospace', fontSize: 12, boxSizing: 'border-box' }}
+                  style={{ width: '100%', background: S.bg, border: `1px solid ${googleClientId ? S.green : S.border}`, color: S.text, borderRadius: 6, padding: '8px 10px', fontFamily: 'monospace', fontSize: 12, boxSizing: 'border-box' }}
                 />
-                {keys.googleClientId && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Saved — go to the Gallery tab to back up portraits.</div>}
+                {googleClientId && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Saved — go to the Gallery tab to back up portraits.</div>}
               </div>
+            </div>
+
+            {/* Data */}
+            <div style={card}>
+              <SectionTitle>DATA</SectionTitle>
+              <Btn ghost small color={S.red} onClick={() => {
+                if (window.confirm('Reset ALL game data? This cannot be undone.')) {
+                  localStorage.removeItem('msc_v1');
+                  localStorage.removeItem('msc_lorebooks');
+                  localStorage.removeItem('msc_convhistory');
+                  window.location.reload();
+                }
+              }}>Reset Game Data</Btn>
             </div>
           </div>
         )}
