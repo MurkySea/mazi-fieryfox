@@ -1,12 +1,12 @@
-import { unzipSync } from 'fflate';
+const { unzipSync } = require('fflate');
 
 const serverCache = new Map();
 const NAI_NEGATIVE = "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra limbs, extra arms, extra legs, malformed limbs, fused fingers, too many fingers, long neck, cross-eyed, mutilated, bad proportions";
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { prompt, negative_prompt, width = 1216, height = 832, cacheKey, novelaiKey } = req.body;
-  const apiKey = novelaiKey || req.headers['x-novelai-key'] || process.env.NOVELAI_KEY;
+  const apiKey = novelaiKey || process.env.NOVELAI_KEY;
   if (!apiKey) return res.status(500).json({ error: 'NOVELAI_KEY not configured' });
 
   if (cacheKey && serverCache.has(cacheKey)) {
@@ -47,4 +47,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
-}
+};
