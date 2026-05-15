@@ -807,7 +807,7 @@ export default function App() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: S.bg, color: S.text, fontFamily: 'Crimson Text, serif', maxWidth: 480, margin: '0 auto', paddingBottom: 'calc(100px + env(safe-area-inset-bottom))' }}>
+    <div style={{ minHeight: '100vh', background: S.bg, color: S.text, fontFamily: 'Crimson Text, serif', maxWidth: 480, margin: '0 auto', paddingBottom: 'calc(148px + env(safe-area-inset-bottom))' }}>
 
       {/* ── HEADER ── */}
       <div style={{ background: S.bgCard, borderBottom: `1px solid ${S.border}`, padding: '12px 16px', paddingTop: 'calc(12px + env(safe-area-inset-top))', position: 'sticky', top: 0, zIndex: 100 }}>
@@ -836,16 +836,40 @@ export default function App() {
         </div>
       </div>
 
-      {/* ── TAB BAR ── */}
-      <div style={{ display: 'flex', overflowX: 'auto', background: S.bgCard, borderBottom: `1px solid ${S.border}`, position: 'sticky', top: 'calc(72px + env(safe-area-inset-top))', zIndex: 99 }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => set({ activeTab: t.id })} style={{
-            flex: '0 0 auto', padding: '9px 13px', background: 'none', border: 'none',
-            color: state.activeTab === t.id ? S.gold : S.textDim,
-            borderBottom: `2px solid ${state.activeTab === t.id ? S.gold : 'transparent'}`,
-            fontFamily: 'Cinzel, serif', fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap',
-          }}>{t.icon} {t.label}</button>
-        ))}
+      {/* ── BOTTOM NAV ── */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: '100%', maxWidth: 480, zIndex: 200,
+        background: S.bgDeep,
+        borderTop: `2px solid ${S.border}`,
+        padding: `8px 8px calc(8px + env(safe-area-inset-bottom))`,
+      }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+          {TABS.map(t => {
+            const active = state.activeTab === t.id;
+            return (
+              <button key={t.id} onClick={() => set({ activeTab: t.id })} style={{
+                background: active
+                  ? 'linear-gradient(180deg, #1a2540 0%, #0f1828 100%)'
+                  : 'linear-gradient(180deg, #0d1220 0%, #080c14 100%)',
+                border: `1px solid ${active ? S.gold : S.border}`,
+                borderRadius: 10,
+                padding: '8px 4px 6px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                cursor: 'pointer',
+                boxShadow: active ? `0 0 10px ${S.goldDim}55` : 'none',
+                transition: 'all 0.15s ease',
+              }}>
+                <span style={{ fontSize: 22, lineHeight: 1 }}>{t.icon}</span>
+                <span style={{
+                  fontSize: 9, fontFamily: 'Cinzel, serif', letterSpacing: 0.5,
+                  color: active ? S.gold : S.textDim, whiteSpace: 'nowrap',
+                }}>{t.label}</span>
+                {active && <div style={{ position: 'absolute', bottom: 0, width: 24, height: 2, background: S.gold, borderRadius: 1 }} />}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── CONTENT ── */}
