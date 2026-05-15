@@ -564,7 +564,7 @@ export default function App() {
 
   // ── API: AI Image ─────────────────────────────────────────────────────────
   async function generateImage(companion) {
-    set(s => ({ generatingImage: { ...s.generatingImage, [companion.id]: true } }));
+    set(s => ({ generatingImage: { ...s.generatingImage, [companion.id]: true }, imageError: { ...s.imageError, [companion.id]: null } }));
     try {
       const prompt = `anime style portrait, ${companion.race.toLowerCase()} girl, ${companion.hair} hair, ${companion.eyes} eyes, ${companion.body} build, ${companion.class.toLowerCase()} dark fantasy outfit, dramatic lighting, beautiful, detailed, masterpiece`;
       const imgHeaders = { 'Content-Type': 'application/json' };
@@ -572,18 +572,24 @@ export default function App() {
       const res  = await fetch('/api/image', {
         method: 'POST',
         headers: imgHeaders,
-        body: JSON.stringify({ prompt, model: 'grok-2-image', n: 1, response_format: 'b64_json' }),
+        body: JSON.stringify({ prompt, model: 'grok-2-image', n: 1 }),
       });
       const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
       const b64 = data?.data?.[0]?.b64_json;
+      const mime = data?.data?.[0]?.mime || 'image/jpeg';
       if (b64) {
-        const dataUrl = `data:image/jpeg;base64,${b64}`;
+        const dataUrl = `data:${mime};base64,${b64}`;
         setState(s => ({
           ...s,
           companions: s.companions.map(c => c.id === companion.id ? { ...c, aiImage: dataUrl } : c),
         }));
+      } else {
+        throw new Error('No image data returned');
       }
-    } catch (e) { console.error('Image gen error:', e); }
+    } catch (e) {
+      set(s => ({ imageError: { ...s.imageError, [companion.id]: e.message } }));
+    }
     set(s => ({ generatingImage: { ...s.generatingImage, [companion.id]: false } }));
   }
 
@@ -990,6 +996,9 @@ export default function App() {
                     <Btn ghost small disabled={!!state.generatingImage[selComp.id]} onClick={() => generateImage(selComp)}>
                       {state.generatingImage[selComp.id] ? '...' : '✨ Portrait'}
                     </Btn>
+                    {state.imageError?.[selComp.id] && (
+                      <div style={{ fontSize: 10, color: S.red, marginTop: 4, maxWidth: 96, wordBreak: 'break-word' }}>{state.imageError[selComp.id]}</div>
+                    )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontFamily: 'Cinzel, serif', color: S.gold, fontSize: 15, marginBottom: 2 }}>{selComp.name}</div>
