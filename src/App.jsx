@@ -692,10 +692,10 @@ export default function App() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: S.bg, color: S.text, fontFamily: 'Crimson Text, serif', maxWidth: 480, margin: '0 auto', paddingBottom: 100 }}>
+    <div style={{ minHeight: '100vh', background: S.bg, color: S.text, fontFamily: 'Crimson Text, serif', maxWidth: 480, margin: '0 auto', paddingBottom: 'calc(100px + env(safe-area-inset-bottom))' }}>
 
       {/* ── HEADER ── */}
-      <div style={{ background: S.bgCard, borderBottom: `1px solid ${S.border}`, padding: '12px 16px', position: 'sticky', top: 0, zIndex: 100 }}>
+      <div style={{ background: S.bgCard, borderBottom: `1px solid ${S.border}`, padding: '12px 16px', paddingTop: 'calc(12px + env(safe-area-inset-top))', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <div>
             <div style={{ fontFamily: 'Cinzel Decorative, serif', color: S.gold, fontSize: 15, lineHeight: 1.2 }}>Murky Sea Chronicles</div>
@@ -722,7 +722,7 @@ export default function App() {
       </div>
 
       {/* ── TAB BAR ── */}
-      <div style={{ display: 'flex', overflowX: 'auto', background: S.bgCard, borderBottom: `1px solid ${S.border}`, position: 'sticky', top: 72, zIndex: 99 }}>
+      <div style={{ display: 'flex', overflowX: 'auto', background: S.bgCard, borderBottom: `1px solid ${S.border}`, position: 'sticky', top: 'calc(72px + env(safe-area-inset-top))', zIndex: 99 }}>
         {TABS.map(t => (
           <button key={t.id} onClick={() => set({ activeTab: t.id })} style={{
             flex: '0 0 auto', padding: '9px 13px', background: 'none', border: 'none',
