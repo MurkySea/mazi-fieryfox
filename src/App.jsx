@@ -1234,93 +1234,195 @@ export default function App() {
         {/* ══════════ PARTY ══════════ */}
         {state.activeTab === 'party' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h2 style={{ fontFamily: 'Cinzel, serif', color: S.gold, margin: 0, fontSize: 18 }}>💎 The Party</h2>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h2 style={{ fontFamily: 'Cinzel, serif', color: S.gold, margin: 0, fontSize: 18 }}>💎 My Room</h2>
               <Btn ghost small onClick={summonCompanion} disabled={state.player.gold < 300}>Summon ◈300</Btn>
             </div>
 
-            {/* Companion strip */}
-            <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4, marginBottom: 14 }}>
-              {state.companions.map(c => (
-                <div key={c.id} onClick={() => set({ selectedCompanion: c.id })} style={{
-                  flexShrink: 0, cursor: 'pointer',
-                  opacity: state.selectedCompanion === c.id ? 1 : 0.45,
-                  transform: state.selectedCompanion === c.id ? 'scale(1.06)' : 'scale(1)',
-                  transition: 'all 0.2s',
-                }}>
-                  {state.generatingImage[c.id]
-                    ? <Shimmer width={62} height={62} radius="50%" />
-                    : c.aiImage
-                      ? <img src={c.aiImage} alt={c.name} style={{ width: 62, height: 62, borderRadius: '50%', border: `2px solid ${state.selectedCompanion === c.id ? S.gold : S.border}`, objectFit: 'cover' }} />
-                      : <CompanionPortrait companion={c} size={62} />
-                  }
-                </div>
-              ))}
+            {/* ── Companion Card Carousel ── */}
+            <div style={{
+              display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 8,
+              scrollSnapType: 'x mandatory',
+              marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16,
+            }}>
+              {state.companions.map(c => {
+                const isSel = state.selectedCompanion === c.id;
+                const intData = INTIMACY[c.intimacy] || INTIMACY[0];
+                const nextInt = INTIMACY[Math.min(c.intimacy + 1, 5)];
+                const bondPct = nextInt ? Math.min(c.bond / nextInt.bond, 1) : 1;
+                const maxBond = nextInt?.bond || 1000;
+                return (
+                  <div key={c.id} onClick={() => set({ selectedCompanion: c.id })}
+                    style={{
+                      flexShrink: 0, width: 150, scrollSnapAlign: 'start', cursor: 'pointer',
+                      borderRadius: 14, overflow: 'hidden', position: 'relative',
+                      border: `2px solid ${isSel ? S.gold : '#1a2236'}`,
+                      boxShadow: isSel ? `0 0 22px ${intData.color}55` : '0 2px 8px rgba(0,0,0,0.5)',
+                      background: '#080d1a',
+                      transition: 'border-color 0.2s, box-shadow 0.2s',
+                    }}>
+
+                    {/* Portrait area */}
+                    <div style={{ position: 'relative', height: 210 }}>
+                      {state.generatingImage[c.id] ? (
+                        <Shimmer width="100%" height={210} radius={0} />
+                      ) : c.aiImage ? (
+                        <img src={c.aiImage} alt={c.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0c1525' }}>
+                          <CompanionPortrait companion={c} size={110} />
+                        </div>
+                      )}
+                      {/* Top gradient */}
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 70,
+                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%)' }} />
+                      {/* Name + heart badge */}
+                      <div style={{ position: 'absolute', top: 7, left: 8, right: 8 }}>
+                        <div style={{ fontSize: 11, fontFamily: 'Cinzel, serif', color: intData.color,
+                          fontWeight: 700, textShadow: '0 1px 5px rgba(0,0,0,1)', lineHeight: 1.2 }}>
+                          {c.name.split(' ')[0]}
+                        </div>
+                        <div style={{ marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 3,
+                          background: 'rgba(0,0,0,0.55)', border: `1px solid ${intData.color}55`,
+                          borderRadius: 20, padding: '2px 7px' }}>
+                          <span style={{ fontSize: 9, color: intData.color }}>❤</span>
+                          <span style={{ fontSize: 10, color: '#fff', fontWeight: 700 }}>{c.intimacy}</span>
+                          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>/{INTIMACY.length - 1}</span>
+                        </div>
+                      </div>
+                      {/* Selected glow overlay */}
+                      {isSel && <div style={{ position: 'absolute', inset: 0, border: `2px solid ${S.gold}44`, pointerEvents: 'none' }} />}
+                    </div>
+
+                    {/* Bottom panel */}
+                    <div style={{ padding: '8px 8px 8px', background: 'linear-gradient(180deg, #0d1528 0%, #060a14 100%)' }}>
+                      {/* Bond progress */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 7 }}>
+                        <span style={{ fontSize: 13, flexShrink: 0 }}>🌸</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ height: 5, background: '#141e32', borderRadius: 3, overflow: 'hidden' }}>
+                            <div style={{ width: `${bondPct * 100}%`, height: '100%', borderRadius: 3,
+                              background: `linear-gradient(90deg, ${intData.color}77, ${intData.color})`,
+                              transition: 'width 0.4s' }} />
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+                            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{c.bond}/{maxBond}</span>
+                            <span style={{ fontSize: 9, color: S.goldDim, fontFamily: 'Cinzel, serif' }}>Gift</span>
+                          </div>
+                        </div>
+                        {/* Level circle */}
+                        <div style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                          background: `radial-gradient(circle, ${intData.color}33, #06090f)`,
+                          border: `1.5px solid ${intData.color}99`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 10, color: '#fff', fontWeight: 700 }}>
+                          {c.intimacy}
+                        </div>
+                      </div>
+                      {/* Bond Up button */}
+                      <button onClick={e => { e.stopPropagation(); giftBond(c.id, 50); }}
+                        style={{
+                          width: '100%', padding: '7px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
+                          fontFamily: 'Cinzel, serif', fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
+                          background: isSel
+                            ? `linear-gradient(135deg, ${intData.color}dd, ${intData.color}88)`
+                            : 'linear-gradient(135deg, #1c2a44, #0f1a2e)',
+                          color: isSel ? '#fff' : S.textDim,
+                          boxShadow: isSel ? `0 2px 10px ${intData.color}44` : 'none',
+                          transition: 'all 0.2s',
+                        }}>
+                        {c.intimacy < 5 ? '✦ Bond Up' : '✦ Bonded'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
+            {/* ── Bottom CTA row (Date once / Auto Date style) ── */}
+            {selComp && (
+              <div style={{ display: 'flex', gap: 10, marginTop: 14, marginBottom: 14 }}>
+                <button onClick={() => speak(selComp)} disabled={state.generatingDialogue}
+                  style={{
+                    flex: 1, padding: '13px 0', borderRadius: 28, border: 'none', cursor: 'pointer',
+                    background: state.generatingDialogue
+                      ? '#1a2030'
+                      : 'linear-gradient(135deg, #e91e8c 0%, #9b1068 100%)',
+                    color: '#fff', fontFamily: 'Cinzel, serif', fontSize: 13, fontWeight: 700,
+                    boxShadow: state.generatingDialogue ? 'none' : '0 4px 18px rgba(233,30,140,0.4)',
+                    opacity: state.generatingDialogue ? 0.6 : 1,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+                    transition: 'all 0.2s',
+                  }}>
+                  <span>{state.generatingDialogue ? '…' : '💬 Speak'}</span>
+                  <span style={{ fontSize: 10, opacity: 0.75, fontFamily: 'Crimson Text, serif', fontStyle: 'italic' }}>
+                    Bond {selComp.bond}
+                  </span>
+                </button>
+                <button onClick={() => giftBond(selComp.id, 25)}
+                  style={{
+                    flex: 1, padding: '13px 0', borderRadius: 28, border: 'none', cursor: 'pointer',
+                    background: 'linear-gradient(135deg, #c49a30 0%, #7a5c18 100%)',
+                    color: '#fff', fontFamily: 'Cinzel, serif', fontSize: 13, fontWeight: 700,
+                    boxShadow: '0 4px 18px rgba(196,154,48,0.35)',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+                  }}>
+                  <span>🎁 Gift</span>
+                  <span style={{ fontSize: 10, opacity: 0.75, fontFamily: 'Crimson Text, serif', fontStyle: 'italic' }}>
+                    Bond +25
+                  </span>
+                </button>
+              </div>
+            )}
+
+            {/* ── Selected companion details ── */}
             {selComp && (
               <>
-                {/* Companion card */}
-                <div style={{ ...card, display: 'flex', gap: 14 }}>
-                  <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
-                    {state.generatingImage[selComp?.id]
-                      ? <Shimmer width={96} height={96} radius="50%" />
-                      : selComp.aiImage
-                        ? <img src={selComp.aiImage} alt={selComp.name} style={{ width: 96, height: 96, borderRadius: '50%', border: `2px solid ${S.gold}`, objectFit: 'cover' }} />
-                        : <CompanionPortrait companion={selComp} size={96} />
-                    }
-                    {/* Outfit selector */}
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
-                      {['combat','work','rest','intimate'].map(o => (
-                        <button key={o} onClick={() => setSelectedOutfit(o)} style={{
-                          padding: '3px 8px', borderRadius: 6, fontSize: 10, fontFamily: 'Cinzel, serif', cursor: 'pointer',
-                          background: selectedOutfit === o ? S.gold : 'transparent',
-                          border: `1px solid ${selectedOutfit === o ? S.gold : S.border}`,
-                          color: selectedOutfit === o ? S.bg : S.textDim,
-                        }}>{o}</button>
-                      ))}
-                    </div>
+                {/* Portrait generation */}
+                <div style={{ ...card, marginBottom: 10 }}>
+                  <SectionTitle>PORTRAIT</SectionTitle>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+                    {['combat','work','rest','intimate'].map(o => (
+                      <button key={o} onClick={() => setSelectedOutfit(o)} style={{
+                        padding: '4px 11px', borderRadius: 8, fontSize: 11, fontFamily: 'Cinzel, serif', cursor: 'pointer',
+                        background: selectedOutfit === o ? S.gold : 'transparent',
+                        border: `1px solid ${selectedOutfit === o ? S.gold : S.border}`,
+                        color: selectedOutfit === o ? S.bg : S.textDim,
+                        transition: 'all 0.15s',
+                      }}>{o}</button>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <Btn ghost small disabled={!!state.generatingImage[selComp.id]} onClick={() => generatePortrait(selComp, selectedOutfit)}>
-                      {state.generatingImage[selComp.id] ? '...' : '✨ Portrait'}
+                      {state.generatingImage[selComp.id] ? '⏳ Generating…' : '✨ Generate'}
                     </Btn>
-                    {state.imageError?.[selComp.id] && (
-                      <div style={{ fontSize: 10, color: S.red, marginTop: 4, maxWidth: 96, wordBreak: 'break-word' }}>{state.imageError[selComp.id]}</div>
-                    )}
+                    <Btn ghost small disabled={state.generatingDialogue} onClick={() => speak(selComp, 'Comment on the other companions in the harem, with your personality.')}>
+                      Harem Talk
+                    </Btn>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: 'Cinzel, serif', color: S.gold, fontSize: 15, marginBottom: 2 }}>{selComp.name}</div>
-                    <div style={{ fontSize: 12, color: S.textDim }}>{selComp.race} · {selComp.class}</div>
-                    <div style={{ fontSize: 12, color: INTIMACY[selComp.intimacy]?.color, marginTop: 4, fontFamily: 'Cinzel, serif' }}>
-                      {INTIMACY[selComp.intimacy]?.name}
-                    </div>
-                    <div style={{ marginTop: 4, marginBottom: 6 }}>
-                      <Bar pct={selComp.bond / (INTIMACY[Math.min(selComp.intimacy + 1, 5)]?.bond || 1000)} color={INTIMACY[selComp.intimacy]?.color} height={4} />
-                      <div style={{ fontSize: 10, color: S.textDim, marginTop: 2 }}>{selComp.bond} bond</div>
-                    </div>
-                    <div style={{ fontSize: 12, color: S.textDim, fontStyle: 'italic', lineHeight: 1.4 }}>{selComp.backstory}</div>
-                    <div style={{ fontSize: 11, color: S.textDim, marginTop: 6 }}>
-                      Flirt: <span style={{ color: S.text }}>{selComp.flirtStyle}</span> ·
-                      Hair: <span style={{ color: HAIR_HEX[selComp.hair] || S.text }}>{selComp.hair}</span> ·
-                      Eyes: <span style={{ color: EYES_HEX[selComp.eyes] || S.text }}>{selComp.eyes}</span>
-                    </div>
-                  </div>
+                  {state.imageError?.[selComp.id] && (
+                    <div style={{ fontSize: 10, color: S.red, marginTop: 6 }}>{state.imageError[selComp.id]}</div>
+                  )}
                 </div>
 
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                  <Btn ghost small onClick={() => giftBond(selComp.id, 10)}>Gift Bond +10</Btn>
-                  <Btn ghost small onClick={() => giftBond(selComp.id, 50)}>Gift Bond +50</Btn>
-                  <Btn ghost small disabled={state.generatingDialogue} onClick={() => speak(selComp)}>
-                    {state.generatingDialogue ? 'Thinking...' : '💬 Speak'}
-                  </Btn>
-                  <Btn ghost small disabled={state.generatingDialogue} onClick={() => speak(selComp, 'Comment on the other companions in the harem, with your personality.')}>
-                    Harem Talk
-                  </Btn>
+                {/* Lore */}
+                <div style={{ ...card, marginBottom: 10 }}>
+                  <SectionTitle>LORE</SectionTitle>
+                  <div style={{ fontSize: 12, color: S.textDim, fontStyle: 'italic', lineHeight: 1.55, marginBottom: 8 }}>{selComp.backstory}</div>
+                  <div style={{ fontSize: 11, color: S.textDim }}>
+                    <span style={{ color: HAIR_HEX[selComp.hair] || S.text }}>◆ {selComp.hair} hair</span>
+                    {' · '}
+                    <span style={{ color: EYES_HEX[selComp.eyes] || S.text }}>{selComp.eyes} eyes</span>
+                    {' · '}
+                    <span style={{ color: S.text }}>{selComp.flirtStyle}</span>
+                  </div>
                 </div>
 
                 {/* Dialogue log */}
                 {state.dialogueLog.length > 0 && (
-                  <div style={card}>
+                  <div style={{ ...card, marginBottom: 10 }}>
                     <SectionTitle>DIALOGUE</SectionTitle>
                     {state.dialogueLog.slice(0, 4).map(d => (
                       <div key={d.id} style={{ marginBottom: 12, borderBottom: `1px solid ${S.border}`, paddingBottom: 10 }}>
