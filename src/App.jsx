@@ -5,19 +5,20 @@ import { getImg, setImg, clearImgCache } from './cache.js';
 // ─── THEME ────────────────────────────────────────────────────────────────────
 
 const S = {
-  bg: '#070912',
-  bgCard: '#0d1220',
-  bgDeep: '#060810',
-  gold: '#f0c040',
-  goldDim: '#a07820',
-  text: '#e8dcc8',
-  textDim: '#8a7a60',
-  red: '#c0392b',
-  green: '#27ae60',
-  blue: '#2980b9',
-  purple: '#8e44ad',
-  pink: '#e91e8c',
-  border: '#1e2a3a',
+  bg:      '#06080f',
+  bgCard:  '#0b1120',
+  bgDeep:  '#050710',
+  gold:    '#f0c040',
+  goldDim: '#7a5c18',
+  goldMid: '#c49a30',
+  text:    '#ede0c8',
+  textDim: '#7a6a52',
+  red:     '#c0392b',
+  green:   '#27ae60',
+  blue:    '#2980b9',
+  purple:  '#8e44ad',
+  pink:    '#e91e8c',
+  border:  '#1c2838',
 };
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -336,7 +337,9 @@ function CompanionPortrait({ companion, size = 120 }) {
 // ─── UI PRIMITIVES ────────────────────────────────────────────────────────────
 
 const card = {
-  background: S.bgCard, border: `1px solid ${S.border}`,
+  background: `linear-gradient(160deg, #0e1428 0%, #080e1c 100%)`,
+  border: `1px solid ${S.border}`,
+  borderTop: `1px solid #253045`,
   borderRadius: 12, padding: 16, marginBottom: 12,
 };
 
@@ -377,9 +380,204 @@ function Shimmer({ width = '100%', height = 120, radius = 8 }) {
 }
 
 function SectionTitle({ children, dim }) {
+  const c = dim ? S.textDim : S.goldMid;
   return (
-    <div style={{ fontSize: 12, fontFamily: 'Cinzel, serif', letterSpacing: 2, color: dim ? S.textDim : S.gold, marginBottom: 8, marginTop: 4 }}>
-      {children}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 6 }}>
+      <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, transparent, ${c}55)` }} />
+      <div style={{ fontSize: 10, fontFamily: 'Cinzel, serif', letterSpacing: 2.5, color: c, whiteSpace: 'nowrap' }}>{children}</div>
+      <div style={{ flex: 1, height: 1, background: `linear-gradient(270deg, transparent, ${c}55)` }} />
+    </div>
+  );
+}
+
+// ─── WORLD MAP ───────────────────────────────────────────────────────────────
+
+const MAP_NODES = [
+  { id: 'ashwatch',       x: 120, y: 355, icon: '🏚️' },
+  { id: 'thornwood',      x: 58,  y: 232, icon: '🌲' },
+  { id: 'voidmarsh',      x: 192, y: 382, icon: '🌫️' },
+  { id: 'ironspire',      x: 252, y: 218, icon: '🏰' },
+  { id: 'celestine_peak', x: 145, y: 118, icon: '⛰️' },
+  { id: 'void_throne',    x: 258, y: 68,  icon: '👁️' },
+  { id: 'eternal_forge',  x: 52,  y: 68,  icon: '⚡' },
+];
+const MAP_EDGES = [
+  ['ashwatch','thornwood'], ['ashwatch','voidmarsh'], ['ashwatch','ironspire'],
+  ['thornwood','celestine_peak'], ['ironspire','void_throne'],
+  ['celestine_peak','eternal_forge'], ['celestine_peak','void_throne'],
+  ['thornwood','voidmarsh'],
+];
+const NODE_MAP = Object.fromEntries(MAP_NODES.map(n => [n.id, n]));
+
+function WorldMap({ curLevel, sceneImages, generatingScene, generateScene }) {
+  const [sel, setSel] = useState(null);
+  const regionData = Object.fromEntries(WORLD_REGIONS.map(r => [r.id, r]));
+  const isUnlocked = id => curLevel >= (regionData[id]?.unlockLevel ?? 99);
+  const selR = sel ? regionData[sel] : null;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, padding: '0 16px' }}>
+        <h2 style={{ fontFamily: 'Cinzel, serif', color: S.gold, margin: 0, fontSize: 18 }}>🗺️ Valdris</h2>
+        <div style={{ fontSize: 11, color: S.textDim, fontStyle: 'italic' }}>Tap a region to explore</div>
+      </div>
+
+      {/* ── SVG MAP ── */}
+      <div style={{ marginLeft: -16, marginRight: -16 }}>
+        <svg viewBox="0 0 320 440" style={{ width: '100%', display: 'block' }}>
+          <defs>
+            <radialGradient id="mapbg" cx="38%" cy="62%" r="75%">
+              <stop offset="0%" stopColor="#0a1428" /><stop offset="100%" stopColor="#040810" />
+            </radialGradient>
+            <pattern id="mgrid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M40 0L0 0 0 40" fill="none" stroke="#0d1830" strokeWidth="0.4" />
+            </pattern>
+            <filter id="glo" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="glo2" x="-80%" y="-80%" width="260%" height="260%">
+              <feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <radialGradient id="fog" cx="50%" cy="50%" r="50%">
+              <stop offset="30%" stopColor="#070912" stopOpacity="0.6"/>
+              <stop offset="100%" stopColor="#070912" stopOpacity="0.85"/>
+            </radialGradient>
+          </defs>
+
+          {/* Background */}
+          <rect width="320" height="440" fill="url(#mapbg)" />
+          <rect width="320" height="440" fill="url(#mgrid)" opacity="0.7" />
+
+          {/* ── Decorative terrain ── */}
+          {/* Mountains — Celestine Peak */}
+          <g opacity="0.35" fill="#182c48" stroke="#243858" strokeWidth="0.8">
+            <polygon points="112,145 138,100 164,145"/>
+            <polygon points="126,145 150,105 172,145"/>
+            <polygon points="96,145 118,120 140,145"/>
+          </g>
+          {/* Mountains — Eternal Forge (glowing) */}
+          <g opacity="0.35" fill="#2a1505" stroke="#3d2208" strokeWidth="0.8">
+            <polygon points="22,95 52,50 82,95"/>
+            <polygon points="36,95 60,58 84,95"/>
+          </g>
+          {/* Void spires — Void Throne */}
+          <g opacity="0.3" fill="#120520" stroke="#1e0a32" strokeWidth="0.8">
+            <polygon points="232,92 258,42 284,92"/>
+            <polygon points="246,92 265,55 290,92"/>
+          </g>
+          {/* Forest — Thornwood */}
+          <g opacity="0.4" fill="#081a0e" stroke="#142a1a" strokeWidth="0.7">
+            <circle cx="20" cy="225" r="14"/><circle cx="36" cy="240" r="12"/>
+            <circle cx="16" cy="248" r="10"/><circle cx="34" cy="212" r="11"/>
+          </g>
+          {/* Marsh — Voidmarsh */}
+          <g opacity="0.35" stroke="#1a2535" fill="none" strokeWidth="1.5">
+            <path d="M162,408 Q172,400 182,408 Q192,400 205,408 Q215,400 222,408"/>
+            <path d="M158,418 Q170,410 183,418 Q196,410 208,418"/>
+          </g>
+          {/* Ruins — Ashwatch */}
+          <g opacity="0.3" fill="none" stroke="#2a2015" strokeWidth="1">
+            <rect x="90" y="374" width="8" height="13"/><rect x="103" y="370" width="6" height="11"/>
+            <rect x="133" y="372" width="7" height="12"/>
+          </g>
+          {/* Decorative border */}
+          <rect x="4" y="4" width="312" height="432" rx="8" fill="none" stroke="#1c2838" strokeWidth="1" opacity="0.6"/>
+          <rect x="8" y="8" width="304" height="424" rx="6" fill="none" stroke="#141e2c" strokeWidth="0.5" opacity="0.4"/>
+
+          {/* ── Edges ── */}
+          {MAP_EDGES.map(([a, b]) => {
+            const na = NODE_MAP[a], nb = NODE_MAP[b];
+            const both = isUnlocked(a) && isUnlocked(b);
+            const cx = (na.x + nb.x) / 2 + (nb.y - na.y) * 0.12;
+            const cy = (na.y + nb.y) / 2 - (nb.x - na.x) * 0.12;
+            return (
+              <path key={`${a}-${b}`}
+                d={`M${na.x} ${na.y} Q${cx} ${cy} ${nb.x} ${nb.y}`}
+                fill="none"
+                stroke={both ? S.goldDim : '#182030'}
+                strokeWidth={both ? 1.5 : 0.8}
+                strokeDasharray={both ? '5 3' : '2 5'}
+                opacity={both ? 0.65 : 0.35}
+              />
+            );
+          })}
+
+          {/* ── Region nodes ── */}
+          {MAP_NODES.map(node => {
+            const r = regionData[node.id]; if (!r) return null;
+            const unlocked = isUnlocked(node.id);
+            const selected = sel === node.id;
+            const nr = selected ? 26 : 22;
+            return (
+              <g key={node.id} style={{ cursor: 'pointer' }} onClick={e => { e.stopPropagation(); setSel(sel === node.id ? null : node.id); }}>
+                {/* Outer pulse ring */}
+                {unlocked && <circle cx={node.x} cy={node.y} r={nr + 12} fill="none" stroke={selected ? S.gold : S.goldDim} strokeWidth={selected ? 1.5 : 0.8} opacity={selected ? 0.35 : 0.12} />}
+                {/* Glow halo */}
+                {unlocked && <circle cx={node.x} cy={node.y} r={nr + 4} fill={selected ? '#f0c04008' : '#f0c04004'} stroke={selected ? S.gold : S.goldDim} strokeWidth={selected ? 1.5 : 0.8} opacity={selected ? 0.6 : 0.2} filter="url(#glo)" />}
+                {/* Node body */}
+                <circle cx={node.x} cy={node.y} r={nr}
+                  fill={selected ? '#162540' : unlocked ? '#0d1c30' : '#07090f'}
+                  stroke={selected ? S.gold : unlocked ? '#2a3d58' : '#121820'}
+                  strokeWidth={selected ? 2 : 1.5}
+                />
+                {/* Fog overlay */}
+                {!unlocked && <circle cx={node.x} cy={node.y} r={nr} fill="url(#fog)" />}
+                {/* Icon */}
+                <text x={node.x} y={node.y + 1} textAnchor="middle" dominantBaseline="middle"
+                  fontSize={selected ? 18 : 15} opacity={unlocked ? 1 : 0.25}>{node.icon}</text>
+                {/* Lock badge */}
+                {!unlocked && <text x={node.x + 13} y={node.y - 13} textAnchor="middle" dominantBaseline="middle" fontSize="10" opacity="0.7">🔒</text>}
+                {/* Label */}
+                <text x={node.x} y={node.y + nr + 11} textAnchor="middle"
+                  fontSize="7.5" fontFamily="Cinzel, serif" letterSpacing="0.5"
+                  fill={selected ? S.gold : unlocked ? '#9a8460' : '#2a2a2a'}
+                  opacity={unlocked ? 0.95 : 0.35}
+                >{r.name.split(' ').slice(0, 2).join(' ')}</text>
+              </g>
+            );
+          })}
+
+          {/* Compass rose */}
+          <g transform="translate(288,422)" opacity="0.3">
+            <circle r="10" fill="none" stroke={S.goldDim} strokeWidth="0.8"/>
+            <line x1="0" y1="-7" x2="0" y2="7" stroke={S.goldDim} strokeWidth="1"/>
+            <line x1="-7" y1="0" x2="7" y2="0" stroke={S.goldDim} strokeWidth="1"/>
+            <polygon points="0,-9 2,-4 -2,-4" fill={S.goldDim} opacity="0.8"/>
+            <text x="0" y="-12" textAnchor="middle" fontSize="6" fill={S.goldDim} fontFamily="Cinzel, serif">N</text>
+          </g>
+        </svg>
+      </div>
+
+      {/* ── Selected region detail ── */}
+      {selR && (
+        <div style={{ ...card, margin: '0 0 12px', borderColor: isUnlocked(sel) ? `${S.goldDim}88` : S.border, position: 'relative', overflow: 'hidden' }}>
+          {sceneImages[sel] && (
+            <img src={sceneImages[sel]} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.18 }} />
+          )}
+          <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 10 }}>
+              <div style={{ fontSize: 40, lineHeight: 1 }}>{selR.icon}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: 'Cinzel, serif', color: isUnlocked(sel) ? S.gold : S.textDim, fontSize: 16, marginBottom: 4 }}>{selR.name}</div>
+                <div style={{ fontSize: 13, color: S.textDim, lineHeight: 1.55 }}>{selR.desc}</div>
+                <div style={{ fontSize: 11, marginTop: 6, color: isUnlocked(sel) ? S.green : S.red, fontFamily: 'Cinzel, serif' }}>
+                  {isUnlocked(sel) ? '✦ Realm Accessible' : `🔒 Requires Level ${selR.unlockLevel}`}
+                </div>
+              </div>
+            </div>
+            {isUnlocked(sel) && (
+              <div style={{ display: 'flex', gap: 8 }}>
+                {!sceneImages[sel] && (
+                  <Btn ghost small disabled={!!generatingScene[sel]} onClick={() => generateScene('region', sel)}>
+                    {generatingScene[sel] ? '...' : '🎨 Generate Scene'}
+                  </Btn>
+                )}
+                {sceneImages[sel] && <div style={{ fontSize: 11, color: S.green }}>✦ Scene generated</div>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1244,36 +1442,7 @@ export default function App() {
 
         {/* ══════════ WORLD ══════════ */}
         {state.activeTab === 'world' && (
-          <div>
-            <h2 style={{ fontFamily: 'Cinzel, serif', color: S.gold, marginTop: 0, marginBottom: 4, fontSize: 18 }}>🗺️ Valdris</h2>
-            <div style={{ fontSize: 13, color: S.textDim, marginBottom: 16, fontStyle: 'italic' }}>Explore the realm as your power grows.</div>
-            {WORLD_REGIONS.map(r => {
-              const unlocked = curLevel.level >= r.unlockLevel;
-              return (
-                <div key={r.id} style={{ position: 'relative', ...card, opacity: unlocked ? 1 : 0.4, borderColor: unlocked ? S.border : '#0a0a14', overflow: 'hidden' }}>
-                  {/* Background scene image */}
-                  {sceneImages[r.id] && (
-                    <img src={sceneImages[r.id]} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.25 }} />
-                  )}
-                  <div style={{ position: 'relative', display: 'flex', gap: 14, alignItems: 'center' }}>
-                    <div style={{ fontSize: 34 }}>{r.icon}</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontFamily: 'Cinzel, serif', color: unlocked ? S.gold : S.textDim, fontSize: 15 }}>{r.name}</div>
-                      <div style={{ fontSize: 13, color: S.textDim, marginTop: 2 }}>{r.desc}</div>
-                      <div style={{ fontSize: 11, marginTop: 4, color: unlocked ? S.green : S.red }}>
-                        {unlocked ? '✦ Unlocked' : `🔒 Requires Level ${r.unlockLevel}`}
-                      </div>
-                    </div>
-                    {unlocked && !sceneImages[r.id] && (
-                      <Btn ghost small disabled={!!generatingScene[r.id]} onClick={() => generateScene('region', r.id)}>
-                        {generatingScene[r.id] ? '...' : '🎨'}
-                      </Btn>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <WorldMap curLevel={curLevel.level} sceneImages={sceneImages} generatingScene={generatingScene} generateScene={generateScene} />
         )}
 
         {/* ══════════ BOSSES ══════════ */}
