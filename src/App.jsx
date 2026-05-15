@@ -607,7 +607,7 @@ export default function App() {
       const prompt = buildCompanionPrompt(companion, ot);
       const negative_prompt = buildNegativePrompt(ot);
       const headers = { 'Content-Type': 'application/json' };
-      if (keys.novelai) headers['x-novelai-key'] = keys.novelai;
+      if (keys.novelai) headers['x-novelai-key'] = keys.novelai.trim();
       const res = await fetch('/api/image', {
         method: 'POST', headers,
         body: JSON.stringify({ prompt, negative_prompt, cacheKey: cKey }),
@@ -631,7 +631,7 @@ export default function App() {
     try {
       const prompt = type === 'region' ? buildRegionPrompt(id) : buildBossPrompt(id);
       const headers = { 'Content-Type': 'application/json' };
-      if (keys.novelai) headers['x-novelai-key'] = keys.novelai;
+      if (keys.novelai) headers['x-novelai-key'] = keys.novelai.trim();
       const res = await fetch('/api/scene', {
         method: 'POST', headers,
         body: JSON.stringify({ prompt, width: 1216, height: 832, cacheKey: cKey }),
@@ -652,7 +652,7 @@ export default function App() {
     const intimacyName = INTIMACY[companion.intimacy]?.name || 'Stranger';
     try {
       const dlgHeaders = { 'Content-Type': 'application/json' };
-      if (keys.anthropic) dlgHeaders['x-anthropic-key'] = keys.anthropic;
+      if (keys.anthropic) dlgHeaders['x-anthropic-key'] = keys.anthropic.trim();
       const res = await fetch('/api/dialogue', {
         method: 'POST',
         headers: dlgHeaders,
@@ -1452,7 +1452,7 @@ export default function App() {
                 <input
                   type="password"
                   value={keys.novelai || ''}
-                  onChange={e => saveKey('novelai', e.target.value)}
+                  onChange={e => saveKey('novelai', e.target.value.trim())}
                   placeholder="pst-..."
                   style={{ width: '100%', background: S.bg, border: `1px solid ${keys.novelai ? S.green : S.border}`, color: S.text, borderRadius: 6, padding: '8px 10px', fontFamily: 'monospace', fontSize: 13, boxSizing: 'border-box' }}
                 />
@@ -1461,7 +1461,7 @@ export default function App() {
                   <Btn ghost small onClick={async () => {
                     try {
                       const headers = { 'Content-Type': 'application/json' };
-                      if (keys.novelai) headers['x-novelai-key'] = keys.novelai;
+                      if (keys.novelai) headers['x-novelai-key'] = keys.novelai.trim();
                       const res = await fetch('/api/image', {
                         method: 'POST', headers,
                         body: JSON.stringify({ prompt: 'best quality, 1girl, simple background, test', width: 64, height: 64 }),
@@ -1481,7 +1481,7 @@ export default function App() {
                 <input
                   type="password"
                   value={keys.anthropic || ''}
-                  onChange={e => saveKey('anthropic', e.target.value)}
+                  onChange={e => saveKey('anthropic', e.target.value.trim())}
                   placeholder="sk-ant-..."
                   style={{ width: '100%', background: S.bg, border: `1px solid ${keys.anthropic ? S.green : S.border}`, color: S.text, borderRadius: 6, padding: '8px 10px', fontFamily: 'monospace', fontSize: 13, boxSizing: 'border-box' }}
                 />
