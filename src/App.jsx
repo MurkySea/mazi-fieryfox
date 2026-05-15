@@ -397,11 +397,17 @@ function requestDriveToken(clientId, skipConsent) {
 }
 
 async function uploadPortraitToDrive(dataUrl, filename, token) {
-  const b64 = dataUrl.split(',')[1];
-  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-  const blob = new Blob([bytes], { type: 'image/jpeg' });
+  if (!dataUrl?.startsWith('data:')) {
+    throw new Error('Portrait was generated before the fix — regenerate it first using ✨ Portrait, then retry.');
+  }
+  const [header, b64] = dataUrl.split(',');
+  const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const blob = new Blob([bytes], { type: mime });
   const form = new FormData();
-  form.append('metadata', new Blob([JSON.stringify({ name: filename, mimeType: 'image/jpeg' })], { type: 'application/json' }));
+  form.append('metadata', new Blob([JSON.stringify({ name: filename, mimeType: mime })], { type: 'application/json' }));
   form.append('file', blob);
   const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
     method: 'POST',
