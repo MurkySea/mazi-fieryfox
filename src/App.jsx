@@ -654,9 +654,14 @@ export default function App() {
   const [sceneImages, setSceneImages] = useState({});
   const [generatingScene, setGeneratingScene] = useState({});
 
+  function cleanKey(v) {
+    return (v || '').replace(/[^\x20-\x7E]/g, '').trim();
+  }
+
   function saveKey(k, v) {
+    const clean = cleanKey(v);
     setKeys(prev => {
-      const next = { ...prev, [k]: v };
+      const next = { ...prev, [k]: clean };
       try { localStorage.setItem('msc_keys', JSON.stringify(next)); } catch {}
       return next;
     });
@@ -806,9 +811,11 @@ export default function App() {
       const res = await fetch('/api/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, negative_prompt, cacheKey: cKey, novelaiKey: keys.novelai?.trim() }),
+        body: JSON.stringify({ prompt, negative_prompt, cacheKey: cKey, novelaiKey: cleanKey(keys.novelai) }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { throw new Error(`Server error ${res.status}: ${text.slice(0, 120)}`); }
       if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
       const dataUrl = `data:${data.mime || 'image/png'};base64,${data.b64}`;
       setImg(cKey, dataUrl);
@@ -829,9 +836,11 @@ export default function App() {
       const res = await fetch('/api/scene', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, width: 1216, height: 832, cacheKey: cKey, novelaiKey: keys.novelai?.trim() }),
+        body: JSON.stringify({ prompt, width: 1216, height: 832, cacheKey: cKey, novelaiKey: cleanKey(keys.novelai) }),
       });
-      const data = await res.json();
+      const sText = await res.text();
+      let data;
+      try { data = JSON.parse(sText); } catch { throw new Error(`Server error ${res.status}: ${sText.slice(0, 120)}`); }
       if (!res.ok || data.error) throw new Error(data.error);
       const dataUrl = `data:${data.mime || 'image/png'};base64,${data.b64}`;
       setImg(cKey, dataUrl);
@@ -849,12 +858,11 @@ export default function App() {
     const haremNames = state.companions.filter(c => c.id !== companion.id).map(c => c.name).join(', ');
     const intimacyName = INTIMACY[companion.intimacy]?.name || 'Stranger';
     try {
-      const dlgHeaders = { 'Content-Type': 'application/json' };
-      if (keys.anthropic) dlgHeaders['x-anthropic-key'] = keys.anthropic.trim();
       const res = await fetch('/api/dialogue', {
         method: 'POST',
-        headers: dlgHeaders,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          anthropicKey: cleanKey(keys.anthropic),
           model: 'claude-opus-4-5',
           max_tokens: 200,
           messages: [{
@@ -863,8 +871,10 @@ export default function App() {
           }],
         }),
       });
-      const data = await res.json();
-      const text = data?.content?.[0]?.text || 'The arcane channel is silent...';
+      const rawText = await res.text();
+      let data;
+      try { data = JSON.parse(rawText); } catch { throw new Error(`non-JSON response`); }
+      const text = data?.content?.[0]?.text || (data?.error ? `[${data.error}]` : 'The arcane channel is silent...');
       setState(s => ({
         ...s,
         dialogueLog: [{ id: Date.now(), companion: companion.name, text, ts: new Date().toLocaleTimeString() }, ...s.dialogueLog].slice(0, 15),
@@ -1714,16 +1724,25 @@ export default function App() {
                 {keys.novelai && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Saved</div>}
                 <div style={{ marginTop: 8 }}>
                   <Btn ghost small onClick={async () => {
+                    const key = cleanKey(keys.novelai);
+                    if (!key) { alert('No key saved yet.'); return; }
                     try {
                       const res = await fetch('/api/image', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt: 'best quality, 1girl, simple background, test', width: 512, height: 512, novelaiKey: keys.novelai?.trim() }),
+                        body: JSON.stringify({ prompt: 'best quality, 1girl, simple background, test', width: 512, height: 512, novelaiKey: key }),
                       });
-                      const data = await res.json();
-                      if (data.error) alert('Error: ' + data.error);
+                      const text = await res.text();
+                      let data;
+                      try { data = JSON.parse(text); } catch {
+                        alert(`Server returned non-JSON (${res.status}):\n${text.slice(0, 300)}`);
+                        return;
+                      }
+                      if (data.error) alert(`API Error (${res.status}): ${data.error}`);
                       else alert('✓ NovelAI key works!');
-                    } catch (e) { alert('Error: ' + e.message); }
+                    } catch (e) {
+                      alert(`Fetch failed [${e.name}]: ${e.message}`);
+                    }
                   }}>Test Key</Btn>
                 </div>
               </div>
