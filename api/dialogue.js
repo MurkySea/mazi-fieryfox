@@ -1,8 +1,8 @@
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const apiKey = req.body.anthropicKey || req.headers['x-anthropic-key'] || process.env.ANTHROPIC_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_KEY not configured' });
+  const key = process.env.ANTHROPIC_KEY;
+  if (!key) return res.status(500).json({ error: 'ANTHROPIC_KEY env var not set on Vercel' });
 
   const { system, messages, extractMemory = false } = req.body;
   if (!messages?.length) return res.status(400).json({ error: 'messages required' });
@@ -12,7 +12,7 @@ module.exports = async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
+        'x-api-key': key,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
@@ -28,7 +28,6 @@ module.exports = async function handler(req, res) {
 
     const reply = data.content?.[0]?.text || '...';
 
-    // Extract a saveable memory from this exchange if meaningful
     let memory = null;
     if (extractMemory) {
       const lastUser = messages.filter(m => m.role === 'user').slice(-1)[0]?.content || '';
@@ -38,7 +37,7 @@ module.exports = async function handler(req, res) {
     }
 
     return res.status(200).json({ reply, memory });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 };
