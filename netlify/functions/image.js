@@ -23,7 +23,7 @@ exports.handler = async (event) => {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         input: prompt,
-        model: 'nai-diffusion-4-5',
+        model: 'nai-diffusion-4-5-full',
         action: 'generate',
         parameters: {
           width, height, scale: 6, sampler: 'k_euler_ancestral', steps: 28, n_samples: 1,
