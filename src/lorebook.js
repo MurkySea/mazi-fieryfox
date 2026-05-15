@@ -223,8 +223,23 @@ export function buildImagePrompt(lorebook, outfitKey, intimacyIdx) {
   ].filter(Boolean).join(', ');
 }
 
-// Alias used by dialogue calls — same context, clearer name at call site
-export const buildDialoguePrompt = buildLorebookContext;
+// Richer dialogue system prompt — includes player skills, party context, outfit, time of day
+export function buildDialoguePrompt(lorebook, playerSkills = {}, partyNames = [], outfitKey = 'combat', timeOfDay = 'day', intimacyIdx = 0) {
+  const base = buildLorebookContext(lorebook);
+  const skillLine = Object.entries(playerSkills)
+    .filter(([, v]) => v > 0)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3)
+    .map(([k, v]) => `${k} ${v}`)
+    .join(', ');
+  const extras = [
+    skillLine   ? `Murky Sea's strongest skills: ${skillLine}.` : '',
+    partyNames.length ? `Other companions in the party: ${partyNames.join(', ')}.` : '',
+    outfitKey   ? `Current outfit: ${outfitKey}.` : '',
+    timeOfDay   ? `Time of day: ${timeOfDay}.` : '',
+  ].filter(Boolean).join(' ');
+  return extras ? `${base}\n\n${extras}` : base;
+}
 
 export function buildImageNegative(outfitKey) {
   return outfitKey === 'intimate' ? NAI_NEGATIVE + ', fully clothed, covered body' : NAI_NEGATIVE;
