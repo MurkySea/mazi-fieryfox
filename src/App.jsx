@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { buildCompanionPrompt, buildNegativePrompt, buildRegionPrompt, buildBossPrompt, outfitForIntimacy, portraitKey, regionKey, bossKey } from './prompts.js';
+import { buildLorebookEntry, addMemory, updateRelationshipState, touchConversation, buildLorebookContext, buildDialoguePrompt, buildImagePrompt, buildImageNegative, outfitForIntimacy, portraitKey } from './lorebook.js';
+import { buildRegionPrompt, buildBossPrompt, regionKey, bossKey } from './prompts.js';
 import { getImg, setImg, clearImgCache } from './cache.js';
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
@@ -178,12 +179,13 @@ function generateCompanion(existingNames = []) {
     body:       randItem(BODY_TYPES),
     hair:       randItem(HAIR_COLORS),
     eyes:       randItem(EYE_COLORS),
-    flirtStyle: randItem(FLIRT_STYLES),
-    personality:'Enigmatic and fiercely independent, yet drawn to strength and purpose.',
-    intimacy:   0,
-    bond:       0,
-    outfit:     'combat',
-    aiImage:    null,
+    flirtStyle:  randItem(FLIRT_STYLES),
+    personality: 'Enigmatic and fiercely independent, yet drawn to strength and purpose.',
+    intimacy:    0,
+    bond:        0,
+    outfit:      'combat',
+    aiImage:     null,
+    appreciates: [...SKILLS].sort(() => Math.random() - 0.5).slice(0, 2),
   };
 }
 
@@ -204,6 +206,7 @@ const KIRA = {
   bond:        30,
   outfit:      'combat',
   aiImage:     null,
+  appreciates: ['Discipline', 'Fitness'],
 };
 
 // ─── INITIAL STATE ────────────────────────────────────────────────────────────
@@ -676,8 +679,7 @@ export default function App() {
         return {
           ...fresh,
           ...saved,
-          // always strip ephemeral fields
-          dialogueLog:        saved.dialogueLog        || [],
+          dialogueLog:        saved.dialogueLog || [],
           generatingImage:    {},
           generatingDialogue: false,
           newQuestText:       '',
@@ -696,6 +698,59 @@ export default function App() {
   }, [state]);
 
   const set = useCallback((patch) => setState(s => ({ ...s, ...(typeof patch === 'function' ? patch(s) : patch) })), []);
+
+  // ── Lorebooks (separate persistent state, keyed by companion id) ──────────
+  const [lorebooks, setLorebooks] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('msc_lorebooks') || '{}');
+      // Ensure every companion has a lorebook
+      const result = { ...saved };
+      const companions = JSON.parse(localStorage.getItem('msc_v1') || '{}').companions || [KIRA];
+      for (const c of companions) {
+        if (!result[c.id]) result[c.id] = buildLorebookEntry(c);
+      }
+      if (!result[KIRA.id]) result[KIRA.id] = buildLorebookEntry(KIRA);
+      return result;
+    } catch { return { [KIRA.id]: buildLorebookEntry(KIRA) }; }
+  });
+
+  const [conversationHistory, setConversationHistory] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('msc_convhistory') || '{}'); } catch { return {}; }
+  });
+
+  function ensureLorebook(companion) {
+    setLorebooks(prev => {
+      if (prev[companion.id]) return prev;
+      const next = { ...prev, [companion.id]: buildLorebookEntry(companion) };
+      try { localStorage.setItem('msc_lorebooks', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
+
+  function saveLorebook(companionId, lb) {
+    setLorebooks(prev => {
+      const next = { ...prev, [companionId]: lb };
+      try { localStorage.setItem('msc_lorebooks', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
+
+  function saveConvHistory(companionId, history) {
+    setConversationHistory(prev => {
+      const next = { ...prev, [companionId]: history };
+      try { localStorage.setItem('msc_convhistory', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
+
+  // Sync lorebooks and conversation history to localStorage on every change
+  useEffect(() => {
+    try { localStorage.setItem('msc_lorebooks', JSON.stringify(lorebooks)); } catch {}
+  }, [lorebooks]);
+
+  useEffect(() => {
+    try { localStorage.setItem('msc_convhistory', JSON.stringify(conversationHistory)); } catch {}
+  }, [conversationHistory]);
 
   // ── Google Drive backup ───────────────────────────────────────────────────
   async function getToken() {
@@ -806,8 +861,9 @@ export default function App() {
     }
     set(s => ({ generatingImage: { ...s.generatingImage, [companion.id]: true }, imageError: { ...s.imageError, [companion.id]: null } }));
     try {
-      const prompt = buildCompanionPrompt(companion, ot);
-      const negative_prompt = buildNegativePrompt(ot);
+      const lb = lorebooks[companion.id] || buildLorebookEntry(companion);
+      const prompt = buildImagePrompt(lb, ot, companion.intimacy);
+      const negative_prompt = buildImageNegative(ot);
       const res = await fetch('/api/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -855,31 +911,47 @@ export default function App() {
       generatePortrait(companion, outfitForIntimacy(companion.intimacy));
     }
     set({ generatingDialogue: true });
-    const haremNames = state.companions.filter(c => c.id !== companion.id).map(c => c.name).join(', ');
-    const intimacyName = INTIMACY[companion.intimacy]?.name || 'Stranger';
+
+    const lb = lorebooks[companion.id] || buildLorebookEntry(companion);
+    const partyNames = state.companions.filter(c => c.id !== companion.id).map(c => c.name.split(' ')[0]);
+    const hour = new Date().getHours();
+    const timeOfDay = hour < 6 ? 'late night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
+    const outfit = outfitForIntimacy(companion.intimacy);
+    const system = buildDialoguePrompt(lb, state.player.skills, partyNames, outfit, timeOfDay, companion.intimacy);
+    const userMsg = context || `Greet Murky Sea. It is ${timeOfDay} on ${new Date().toLocaleDateString('en-US', { weekday: 'long' })}.`;
+    const history = conversationHistory[companion.id] || [];
+    const messages = [...history.slice(-14), { role: 'user', content: userMsg }];
+
     try {
       const res = await fetch('/api/dialogue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           anthropicKey: cleanKey(keys.anthropic),
-          model: 'claude-opus-4-5',
-          max_tokens: 200,
-          messages: [{
-            role: 'user',
-            content: `You are ${companion.name}, a ${companion.race} ${companion.class} in the dark fantasy world of Valdris. Flirt style: ${companion.flirtStyle}. Personality: ${companion.personality}. Intimacy with ${state.player.name} (the Sovereign Architect): ${intimacyName}.${haremNames ? ` Other companions in the harem: ${haremNames}.` : ''} ${context || 'Greet the player in character.'} Keep response under 80 words. Speak directly to them.`,
-          }],
+          system,
+          messages,
+          extractMemory: (lb.relationship.totalConversations % 3 === 0),
         }),
       });
       const rawText = await res.text();
       let data;
-      try { data = JSON.parse(rawText); } catch { throw new Error(`non-JSON response`); }
-      const text = data?.content?.[0]?.text || (data?.error ? `[${data.error}]` : 'The arcane channel is silent...');
+      try { data = JSON.parse(rawText); } catch { throw new Error('non-JSON response'); }
+      const reply = data.reply || (data.error ? `[${data.error}]` : '...the arcane channel fades.');
+
+      // Persist conversation history
+      const updatedHistory = [...history.slice(-14), { role: 'user', content: userMsg }, { role: 'assistant', content: reply }];
+      saveConvHistory(companion.id, updatedHistory);
+
+      // Persist memory + touch conversation count in lorebook
+      let updatedLb = touchConversation(lb);
+      if (data.memory) updatedLb = addMemory(updatedLb, data.memory);
+      saveLorebook(companion.id, updatedLb);
+
       setState(s => ({
         ...s,
-        dialogueLog: [{ id: Date.now(), companion: companion.name, text, ts: new Date().toLocaleTimeString() }, ...s.dialogueLog].slice(0, 15),
+        dialogueLog: [{ id: Date.now(), companion: companion.name, text: reply, ts: new Date().toLocaleTimeString() }, ...s.dialogueLog].slice(0, 15),
       }));
-    } catch {
+    } catch (e) {
       setState(s => ({
         ...s,
         dialogueLog: [{ id: Date.now(), companion: companion.name, text: '...the connection fades into static.', ts: new Date().toLocaleTimeString() }, ...s.dialogueLog].slice(0, 15),
@@ -946,18 +1018,26 @@ export default function App() {
   function giftBond(companionId, amount = 10) {
     const bonus = Math.round(amount * fx.bondMultiplier);
     let levelUpCompanion = null;
+    let newBondTotal = 0;
     setState(s => {
       const updated = s.companions.map(c => {
         if (c.id !== companionId) return c;
         const newBond     = c.bond + bonus;
         const newIntimacy = intimacyForBond(newBond);
-        if (newIntimacy > c.intimacy) levelUpCompanion = { ...c, intimacy: newIntimacy };
+        if (newIntimacy > c.intimacy) levelUpCompanion = { ...c, intimacy: newIntimacy, bond: newBond };
+        newBondTotal = newBond;
         return { ...c, bond: newBond, intimacy: newIntimacy };
       });
       const maxInti = Math.max(...updated.map(c => c.intimacy));
       return { ...s, companions: updated, stats: { ...s.stats, maxIntimacy: maxInti } };
     });
     checkAchievements();
+    // Update lorebook relationship state
+    const lb = lorebooks[companionId];
+    if (lb) {
+      const newTitle = levelUpCompanion ? (INTIMACY[levelUpCompanion.intimacy]?.name || lb.relationship.currentTitle) : lb.relationship.currentTitle;
+      saveLorebook(companionId, updateRelationshipState(lb, newBondTotal || (lb.relationship.intimacyPoints + bonus), newTitle));
+    }
     if (levelUpCompanion) {
       setTimeout(() => generatePortrait(levelUpCompanion, outfitForIntimacy(levelUpCompanion.intimacy)), 100);
     }
@@ -972,6 +1052,7 @@ export default function App() {
       companions: [...s.companions, newC],
       selectedCompanion: newC.id,
     }));
+    saveLorebook(newC.id, buildLorebookEntry(newC));
     setTimeout(() => generatePortrait(newC, 'combat'), 100);
   }
 
@@ -1052,6 +1133,7 @@ export default function App() {
     { id: 'rituals',  label: 'Rituals',  icon: '🔥' },
     { id: 'party',    label: 'Party',    icon: '💎' },
     { id: 'gallery',  label: 'Gallery',  icon: '🖼️' },
+    { id: 'journal',  label: 'Journal',  icon: '📖' },
     { id: 'world',    label: 'World',    icon: '🗺️' },
     { id: 'bosses',   label: 'Bosses',   icon: '💀' },
     { id: 'shop',     label: 'Shop',     icon: '🏪' },
@@ -1105,7 +1187,7 @@ export default function App() {
         borderTop: `2px solid ${S.border}`,
         padding: `8px 8px calc(8px + env(safe-area-inset-bottom))`,
       }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
           {TABS.map(t => {
             const active = state.activeTab === t.id;
             return (
@@ -1406,6 +1488,27 @@ export default function App() {
                   </div>
                 )}
 
+                {/* Memories */}
+                {(() => {
+                  const lb = lorebooks[selComp.id];
+                  const mems = lb?.memories?.slice(-3) || [];
+                  if (!mems.length) return null;
+                  const intColor = INTIMACY[selComp.intimacy]?.color || S.goldDim;
+                  return (
+                    <div style={{ ...card, marginBottom: 10 }}>
+                      <SectionTitle>MEMORIES</SectionTitle>
+                      {mems.map((m, i) => (
+                        <div key={i} style={{
+                          fontSize: 11, fontStyle: 'italic', color: S.textDim, lineHeight: 1.5,
+                          borderLeft: `2px solid ${intColor}44`, paddingLeft: 10, marginBottom: 8,
+                        }}>
+                          {m.content.slice(0, 120)}{m.content.length > 120 ? '…' : ''}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
                 {/* Lore */}
                 <div style={{ ...card, marginBottom: 10 }}>
                   <SectionTitle>LORE</SectionTitle>
@@ -1535,6 +1638,68 @@ export default function App() {
                 <Btn ghost small onClick={() => set({ activeTab: 'settings' })} color={S.blue}>Open Settings</Btn>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ══════════ JOURNAL ══════════ */}
+        {state.activeTab === 'journal' && (
+          <div>
+            <div style={{ marginBottom: 14 }}>
+              <h2 style={{ fontFamily: 'Cinzel Decorative, serif', color: S.gold, margin: 0, fontSize: 16, marginBottom: 4 }}>Chronicle of Valdris</h2>
+              <div style={{ fontSize: 13, color: S.textDim, fontStyle: 'italic' }}>A living record of your journey and the bonds you've forged.</div>
+            </div>
+            {(() => {
+              const beats = Object.values(lorebooks)
+                .flatMap(lb => (lb.storyBeats || []).map(b => ({ ...b, companion: lb.identity?.name || '?' })))
+                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+              if (!beats.length) return (
+                <div style={{ ...card, textAlign: 'center', padding: 32 }}>
+                  <div style={{ fontSize: 28, marginBottom: 10 }}>📜</div>
+                  <div style={{ fontFamily: 'Cinzel, serif', color: S.textDim, fontSize: 13 }}>The chronicle is empty</div>
+                  <div style={{ fontSize: 12, color: S.textDim, marginTop: 6 }}>Speak with companions and grow your bonds — your story will be written here.</div>
+                </div>
+              );
+              return beats.map((beat, i) => (
+                <div key={i} style={{
+                  padding: '10px 14px', marginBottom: 8, borderRadius: '0 8px 8px 0',
+                  borderLeft: `2px solid ${S.gold}44`,
+                  background: 'linear-gradient(145deg, #0f1724, #090e18)',
+                }}>
+                  <div style={{ fontFamily: 'Cinzel, serif', fontSize: 10, color: S.textDim, marginBottom: 4, letterSpacing: 0.5 }}>
+                    {new Date(beat.timestamp).toLocaleDateString()} — <span style={{ color: S.goldDim }}>{beat.companion}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: S.text, fontStyle: 'italic', lineHeight: 1.5 }}>
+                    {beat.summary || beat.beat}
+                  </div>
+                  {beat.chapter && (
+                    <div style={{ fontSize: 10, color: S.textDim, marginTop: 4, fontFamily: 'Cinzel, serif' }}>
+                      {beat.chapter}
+                    </div>
+                  )}
+                </div>
+              ));
+            })()}
+
+            {/* Memory archive per companion */}
+            {state.companions.map(c => {
+              const lb = lorebooks[c.id];
+              const mems = lb?.memories || [];
+              if (!mems.length) return null;
+              return (
+                <div key={c.id} style={{ ...card, marginTop: 16 }}>
+                  <SectionTitle>{c.name.split(' ')[0]}'s Memories</SectionTitle>
+                  {mems.slice(-5).map((m, i) => (
+                    <div key={i} style={{
+                      fontSize: 11, fontStyle: 'italic', color: S.textDim, lineHeight: 1.5,
+                      borderLeft: `2px solid ${INTIMACY[c.intimacy]?.color || S.goldDim}44`,
+                      paddingLeft: 10, marginBottom: 8,
+                    }}>
+                      {m.content}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
           </div>
         )}
 
