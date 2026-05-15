@@ -373,10 +373,60 @@ function SectionTitle({ children, dim }) {
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 
+// ─── GOOGLE DRIVE HELPERS ─────────────────────────────────────────────────────
+
+function loadGIS() {
+  if (window.google?.accounts?.oauth2) return Promise.resolve();
+  return new Promise(resolve => {
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = resolve;
+    document.head.appendChild(s);
+  });
+}
+
+function requestDriveToken(clientId, skipConsent) {
+  return new Promise((resolve, reject) => {
+    const client = window.google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: r => r.error ? reject(new Error(r.error)) : resolve(r.access_token),
+    });
+    client.requestAccessToken({ prompt: skipConsent ? '' : 'consent' });
+  });
+}
+
+async function uploadPortraitToDrive(dataUrl, filename, token) {
+  const b64 = dataUrl.split(',')[1];
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const blob = new Blob([bytes], { type: 'image/jpeg' });
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify({ name: filename, mimeType: 'image/jpeg' })], { type: 'application/json' }));
+  form.append('file', blob);
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  const file = await res.json();
+  if (!file.id) throw new Error(file.error?.message || 'Drive upload failed');
+  await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}/permissions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+  });
+  return file.id;
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+
 export default function App() {
   const [keys, setKeys] = useState(() => {
     try { return JSON.parse(localStorage.getItem('msc_keys') || '{}'); } catch { return {}; }
   });
+  const [gToken, setGToken] = useState(null);
+  const [driveUploading, setDriveUploading] = useState({});
+  const [driveStatus, setDriveStatus] = useState('');
 
   function saveKey(k, v) {
     setKeys(prev => {
@@ -415,6 +465,56 @@ export default function App() {
   }, [state]);
 
   const set = useCallback((patch) => setState(s => ({ ...s, ...(typeof patch === 'function' ? patch(s) : patch) })), []);
+
+  // ── Google Drive backup ───────────────────────────────────────────────────
+  async function getToken() {
+    if (!keys.googleClientId) throw new Error('Add your Google Client ID in Settings first.');
+    await loadGIS();
+    const token = await requestDriveToken(keys.googleClientId, !!gToken);
+    setGToken(token);
+    return token;
+  }
+
+  async function backupOne(companion, token) {
+    setDriveUploading(u => ({ ...u, [companion.id]: true }));
+    try {
+      const fileId = await uploadPortraitToDrive(companion.aiImage, `${companion.name}_portrait.jpg`, token);
+      setState(s => ({
+        ...s,
+        companions: s.companions.map(c => c.id === companion.id ? { ...c, driveFileId: fileId } : c),
+      }));
+    } finally {
+      setDriveUploading(u => ({ ...u, [companion.id]: false }));
+    }
+  }
+
+  async function backupAllToDrive() {
+    const pending = state.companions.filter(c => c.aiImage && !c.driveFileId);
+    if (!pending.length) { setDriveStatus('All portraits already backed up.'); return; }
+    setDriveStatus('');
+    try {
+      const token = await getToken();
+      setDriveStatus(`Uploading 0 / ${pending.length}…`);
+      for (let i = 0; i < pending.length; i++) {
+        await backupOne(pending[i], token);
+        setDriveStatus(`Uploading ${i + 1} / ${pending.length}…`);
+      }
+      setDriveStatus(`✓ ${pending.length} portrait${pending.length > 1 ? 's' : ''} saved to Drive.`);
+    } catch (e) {
+      setDriveStatus(`Error: ${e.message}`);
+    }
+  }
+
+  async function backupSingleToDrive(companion) {
+    setDriveStatus('');
+    try {
+      const token = await getToken();
+      await backupOne(companion, token);
+      setDriveStatus(`✓ ${companion.name} saved to Drive.`);
+    } catch (e) {
+      setDriveStatus(`Error: ${e.message}`);
+    }
+  }
 
   // ── Computed ──────────────────────────────────────────────────────────────
   const curLevel  = getLevel(state.player.xp);
@@ -472,13 +572,15 @@ export default function App() {
       const res  = await fetch('/api/image', {
         method: 'POST',
         headers: imgHeaders,
-        body: JSON.stringify({ prompt, model: 'grok-2-image', n: 1, response_format: 'url' }),
+        body: JSON.stringify({ prompt, model: 'grok-2-image', n: 1, response_format: 'b64_json' }),
       });
       const data = await res.json();
-      if (data?.data?.[0]?.url) {
+      const b64 = data?.data?.[0]?.b64_json;
+      if (b64) {
+        const dataUrl = `data:image/jpeg;base64,${b64}`;
         setState(s => ({
           ...s,
-          companions: s.companions.map(c => c.id === companion.id ? { ...c, aiImage: data.data[0].url } : c),
+          companions: s.companions.map(c => c.id === companion.id ? { ...c, aiImage: dataUrl } : c),
         }));
       }
     } catch (e) { console.error('Image gen error:', e); }
@@ -676,6 +778,7 @@ export default function App() {
     { id: 'warplan',  label: 'War Plan', icon: '⚔️' },
     { id: 'rituals',  label: 'Rituals',  icon: '🔥' },
     { id: 'party',    label: 'Party',    icon: '💎' },
+    { id: 'gallery',  label: 'Gallery',  icon: '🖼️' },
     { id: 'world',    label: 'World',    icon: '🗺️' },
     { id: 'bosses',   label: 'Bosses',   icon: '💀' },
     { id: 'shop',     label: 'Shop',     icon: '🏪' },
@@ -951,6 +1054,96 @@ export default function App() {
           </div>
         )}
 
+        {/* ══════════ GALLERY ══════════ */}
+        {state.activeTab === 'gallery' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <h2 style={{ fontFamily: 'Cinzel, serif', color: S.gold, margin: 0, fontSize: 18 }}>🖼️ Portrait Gallery</h2>
+              {keys.googleClientId && state.companions.some(c => c.aiImage) && (
+                <Btn ghost small onClick={backupAllToDrive}>☁ Backup All</Btn>
+              )}
+            </div>
+            <div style={{ fontSize: 13, color: S.textDim, marginBottom: driveStatus ? 8 : 16, fontStyle: 'italic' }}>AI-generated portraits of your companions.</div>
+            {driveStatus && (
+              <div style={{ fontSize: 12, color: driveStatus.startsWith('Error') ? S.red : S.green, marginBottom: 12, padding: '6px 10px', background: S.bgCard, borderRadius: 6 }}>
+                {driveStatus}
+              </div>
+            )}
+
+            {state.companions.filter(c => c.aiImage).length === 0 ? (
+              <div style={{ ...card, textAlign: 'center', padding: 32 }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>🎨</div>
+                <div style={{ fontFamily: 'Cinzel, serif', color: S.textDim, fontSize: 14, marginBottom: 8 }}>No portraits yet</div>
+                <div style={{ fontSize: 12, color: S.textDim }}>Go to Party, select a companion, and tap ✨ Portrait to generate one.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {state.companions.filter(c => c.aiImage).map(c => (
+                  <div key={c.id} style={{ ...card, padding: 10, cursor: 'pointer' }}
+                    onClick={() => { set({ selectedCompanion: c.id, activeTab: 'party' }); }}>
+                    <div style={{ position: 'relative' }}>
+                      <img
+                        src={c.aiImage}
+                        alt={c.name}
+                        style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 8, display: 'block', marginBottom: 8 }}
+                      />
+                      {c.driveFileId && (
+                        <div style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(7,9,18,0.75)', borderRadius: 4, padding: '2px 5px', fontSize: 11, color: S.green }}>☁ Saved</div>
+                      )}
+                    </div>
+                    <div style={{ fontFamily: 'Cinzel, serif', color: S.gold, fontSize: 12, marginBottom: 2 }}>{c.name}</div>
+                    <div style={{ fontSize: 11, color: S.textDim }}>{c.race} · {c.class}</div>
+                    <div style={{ fontSize: 11, color: INTIMACY[c.intimacy]?.color, marginTop: 2, marginBottom: 6 }}>{INTIMACY[c.intimacy]?.name}</div>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      <Btn ghost small onClick={e => { e.stopPropagation(); generateImage(c); }} disabled={!!state.generatingImage[c.id]}>
+                        {state.generatingImage[c.id] ? '...' : '↺'}
+                      </Btn>
+                      {keys.googleClientId && !c.driveFileId && (
+                        <Btn ghost small onClick={e => { e.stopPropagation(); backupSingleToDrive(c); }} disabled={!!driveUploading[c.id]} color={S.blue}>
+                          {driveUploading[c.id] ? '...' : '☁'}
+                        </Btn>
+                      )}
+                      {c.driveFileId && (
+                        <a href={`https://drive.google.com/file/d/${c.driveFileId}/view`} target="_blank" rel="noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          style={{ fontSize: 11, fontFamily: 'Cinzel, serif', color: S.blue, padding: '5px 8px', border: `1px solid ${S.blue}`, borderRadius: 8, textDecoration: 'none' }}>
+                          View
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Companions without portraits */}
+            {state.companions.filter(c => !c.aiImage).length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <SectionTitle dim>WITHOUT PORTRAIT</SectionTitle>
+                {state.companions.filter(c => !c.aiImage).map(c => (
+                  <div key={c.id} style={{ ...card, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <CompanionPortrait companion={c} size={52} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: 'Cinzel, serif', color: S.gold, fontSize: 13 }}>{c.name}</div>
+                      <div style={{ fontSize: 11, color: S.textDim }}>{c.race} · {c.class}</div>
+                    </div>
+                    <Btn ghost small disabled={!!state.generatingImage[c.id]} onClick={() => generateImage(c)}>
+                      {state.generatingImage[c.id] ? '...' : '✨ Generate'}
+                    </Btn>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!keys.googleClientId && (
+              <div style={{ ...card, marginTop: 16, background: S.bgDeep, textAlign: 'center' }}>
+                <div style={{ fontSize: 12, color: S.textDim, marginBottom: 8 }}>Add a Google Client ID in ⚙️ Settings to enable Drive backup.</div>
+                <Btn ghost small onClick={() => set({ activeTab: 'settings' })} color={S.blue}>Open Settings</Btn>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ══════════ WORLD ══════════ */}
         {state.activeTab === 'world' && (
           <div>
@@ -1160,6 +1353,24 @@ export default function App() {
               </div>
 
               <Btn ghost small onClick={() => { setKeys({}); localStorage.removeItem('msc_keys'); }}>Clear Keys</Btn>
+            </div>
+
+            <div style={card}>
+              <SectionTitle>GOOGLE DRIVE BACKUP</SectionTitle>
+              <p style={{ fontSize: 12, color: S.textDim, marginTop: 0, marginBottom: 16 }}>
+                Portraits are backed up to your Google Drive. Create a project at console.cloud.google.com, enable the Drive API, create an OAuth 2.0 Web Client ID, and add your site domain as an authorized JavaScript origin.
+              </p>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12, color: S.text, marginBottom: 6, fontFamily: 'Cinzel, serif' }}>Google OAuth Client ID</div>
+                <input
+                  type="text"
+                  value={keys.googleClientId || ''}
+                  onChange={e => saveKey('googleClientId', e.target.value)}
+                  placeholder="123456789-abc.apps.googleusercontent.com"
+                  style={{ width: '100%', background: S.bg, border: `1px solid ${keys.googleClientId ? S.green : S.border}`, color: S.text, borderRadius: 6, padding: '8px 10px', fontFamily: 'monospace', fontSize: 12, boxSizing: 'border-box' }}
+                />
+                {keys.googleClientId && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Saved — go to the Gallery tab to back up portraits.</div>}
+              </div>
             </div>
           </div>
         )}
