@@ -1065,11 +1065,24 @@ export default function App() {
                 {/* Companion card */}
                 <div style={{ ...card, display: 'flex', gap: 14 }}>
                   <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
-                    {selComp.aiImage
-                      ? <img src={selComp.aiImage} alt={selComp.name} style={{ width: 96, height: 96, borderRadius: '50%', border: `2px solid ${S.gold}`, objectFit: 'cover' }} />
-                      : <CompanionPortrait companion={selComp} size={96} />
+                    {state.generatingImage[selComp?.id]
+                      ? <Shimmer width={96} height={96} radius="50%" />
+                      : selComp.aiImage
+                        ? <img src={selComp.aiImage} alt={selComp.name} style={{ width: 96, height: 96, borderRadius: '50%', border: `2px solid ${S.gold}`, objectFit: 'cover' }} />
+                        : <CompanionPortrait companion={selComp} size={96} />
                     }
-                    <Btn ghost small disabled={!!state.generatingImage[selComp.id]} onClick={() => generateImage(selComp)}>
+                    {/* Outfit selector */}
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+                      {['combat','work','rest','intimate'].map(o => (
+                        <button key={o} onClick={() => setSelectedOutfit(o)} style={{
+                          padding: '3px 8px', borderRadius: 6, fontSize: 10, fontFamily: 'Cinzel, serif', cursor: 'pointer',
+                          background: selectedOutfit === o ? S.gold : 'transparent',
+                          border: `1px solid ${selectedOutfit === o ? S.gold : S.border}`,
+                          color: selectedOutfit === o ? S.bg : S.textDim,
+                        }}>{o}</button>
+                      ))}
+                    </div>
+                    <Btn ghost small disabled={!!state.generatingImage[selComp.id]} onClick={() => generatePortrait(selComp, selectedOutfit)}>
                       {state.generatingImage[selComp.id] ? '...' : '✨ Portrait'}
                     </Btn>
                     {state.imageError?.[selComp.id] && (
@@ -1180,7 +1193,7 @@ export default function App() {
                     <div style={{ fontSize: 11, color: S.textDim }}>{c.race} · {c.class}</div>
                     <div style={{ fontSize: 11, color: INTIMACY[c.intimacy]?.color, marginTop: 2, marginBottom: 6 }}>{INTIMACY[c.intimacy]?.name}</div>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      <Btn ghost small onClick={e => { e.stopPropagation(); generateImage(c); }} disabled={!!state.generatingImage[c.id]}>
+                      <Btn ghost small onClick={e => { e.stopPropagation(); generatePortrait(c, selectedOutfit); }} disabled={!!state.generatingImage[c.id]}>
                         {state.generatingImage[c.id] ? '...' : '↺'}
                       </Btn>
                       {keys.googleClientId && !c.driveFileId && (
@@ -1212,7 +1225,7 @@ export default function App() {
                       <div style={{ fontFamily: 'Cinzel, serif', color: S.gold, fontSize: 13 }}>{c.name}</div>
                       <div style={{ fontSize: 11, color: S.textDim }}>{c.race} · {c.class}</div>
                     </div>
-                    <Btn ghost small disabled={!!state.generatingImage[c.id]} onClick={() => generateImage(c)}>
+                    <Btn ghost small disabled={!!state.generatingImage[c.id]} onClick={() => generatePortrait(c, selectedOutfit)}>
                       {state.generatingImage[c.id] ? '...' : '✨ Generate'}
                     </Btn>
                   </div>
@@ -1237,16 +1250,25 @@ export default function App() {
             {WORLD_REGIONS.map(r => {
               const unlocked = curLevel.level >= r.unlockLevel;
               return (
-                <div key={r.id} style={{ ...card, opacity: unlocked ? 1 : 0.4, borderColor: unlocked ? S.border : '#0a0a14' }}>
-                  <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                <div key={r.id} style={{ position: 'relative', ...card, opacity: unlocked ? 1 : 0.4, borderColor: unlocked ? S.border : '#0a0a14', overflow: 'hidden' }}>
+                  {/* Background scene image */}
+                  {sceneImages[r.id] && (
+                    <img src={sceneImages[r.id]} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.25 }} />
+                  )}
+                  <div style={{ position: 'relative', display: 'flex', gap: 14, alignItems: 'center' }}>
                     <div style={{ fontSize: 34 }}>{r.icon}</div>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <div style={{ fontFamily: 'Cinzel, serif', color: unlocked ? S.gold : S.textDim, fontSize: 15 }}>{r.name}</div>
                       <div style={{ fontSize: 13, color: S.textDim, marginTop: 2 }}>{r.desc}</div>
                       <div style={{ fontSize: 11, marginTop: 4, color: unlocked ? S.green : S.red }}>
                         {unlocked ? '✦ Unlocked' : `🔒 Requires Level ${r.unlockLevel}`}
                       </div>
                     </div>
+                    {unlocked && !sceneImages[r.id] && (
+                      <Btn ghost small disabled={!!generatingScene[r.id]} onClick={() => generateScene('region', r.id)}>
+                        {generatingScene[r.id] ? '...' : '🎨'}
+                      </Btn>
+                    )}
                   </div>
                 </div>
               );
@@ -1264,6 +1286,18 @@ export default function App() {
               const hpPct  = boss.hp / boss.maxHp;
               return (
                 <div key={boss.id} style={{ ...card, borderColor: dead ? S.goldDim : S.border }}>
+                  {/* Boss scene image */}
+                  {sceneImages[boss.id] ? (
+                    <img src={sceneImages[boss.id]} alt="" style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 10 }} />
+                  ) : generatingScene[boss.id] ? (
+                    <Shimmer height={120} radius={8} style={{ marginBottom: 10 }} />
+                  ) : (
+                    <div style={{ marginBottom: 8 }}>
+                      <Btn ghost small disabled={!!generatingScene[boss.id]} onClick={() => generateScene('boss', boss.id)}>
+                        {generatingScene[boss.id] ? '...' : '🎨 Generate Scene'}
+                      </Btn>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontFamily: 'Cinzel, serif', color: dead ? S.gold : S.red, fontSize: 15 }}>{boss.name}</div>
@@ -1406,21 +1440,36 @@ export default function App() {
             <div style={card}>
               <SectionTitle>API KEYS</SectionTitle>
               <p style={{ fontSize: 12, color: S.textDim, marginTop: 0, marginBottom: 16 }}>
-                Keys are saved to your device only and sent directly to the API proxies. Required for portrait generation and companion dialogue.
+                Keys are saved to your device only and sent directly to the API proxies. Required for portrait/scene generation (NovelAI) and companion dialogue (Anthropic).
               </p>
 
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, color: S.text, marginBottom: 6, fontFamily: 'Cinzel, serif' }}>
-                  xAI Key <span style={{ color: S.textDim, fontFamily: 'Crimson Text, serif' }}>(Portrait Generation)</span>
+                  NovelAI Key <span style={{ color: S.textDim, fontFamily: 'Crimson Text, serif' }}>(Portrait &amp; Scene Generation)</span>
                 </div>
                 <input
                   type="password"
-                  value={keys.xai || ''}
-                  onChange={e => saveKey('xai', e.target.value)}
-                  placeholder="xai-..."
-                  style={{ width: '100%', background: S.bg, border: `1px solid ${keys.xai ? S.green : S.border}`, color: S.text, borderRadius: 6, padding: '8px 10px', fontFamily: 'monospace', fontSize: 13, boxSizing: 'border-box' }}
+                  value={keys.novelai || ''}
+                  onChange={e => saveKey('novelai', e.target.value)}
+                  placeholder="pst-..."
+                  style={{ width: '100%', background: S.bg, border: `1px solid ${keys.novelai ? S.green : S.border}`, color: S.text, borderRadius: 6, padding: '8px 10px', fontFamily: 'monospace', fontSize: 13, boxSizing: 'border-box' }}
                 />
-                {keys.xai && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Saved</div>}
+                {keys.novelai && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Saved</div>}
+                <div style={{ marginTop: 8 }}>
+                  <Btn ghost small onClick={async () => {
+                    try {
+                      const headers = { 'Content-Type': 'application/json' };
+                      if (keys.novelai) headers['x-novelai-key'] = keys.novelai;
+                      const res = await fetch('/api/image', {
+                        method: 'POST', headers,
+                        body: JSON.stringify({ prompt: 'best quality, 1girl, simple background, test', width: 64, height: 64 }),
+                      });
+                      const data = await res.json();
+                      if (data.error) alert('Error: ' + data.error);
+                      else alert('✓ NovelAI key works!');
+                    } catch (e) { alert('Error: ' + e.message); }
+                  }}>Test Key</Btn>
+                </div>
               </div>
 
               <div style={{ marginBottom: 16 }}>
