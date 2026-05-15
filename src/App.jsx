@@ -497,9 +497,11 @@ export default function App() {
 
   // ── Google Drive backup ───────────────────────────────────────────────────
   async function getToken() {
-    if (!keys.googleClientId) throw new Error('Add your Google Client ID in Settings first.');
+    const clientId = keys.googleClientId?.trim();
+    if (!clientId) throw new Error('Add your Google Client ID in Settings first.');
+    if (!clientId.endsWith('.apps.googleusercontent.com')) throw new Error('Invalid Client ID — should end in .apps.googleusercontent.com');
     await loadGIS();
-    const token = await requestDriveToken(keys.googleClientId, !!gToken);
+    const token = await requestDriveToken(clientId, !!gToken);
     setGToken(token);
     return token;
   }
@@ -1499,7 +1501,7 @@ export default function App() {
                 <input
                   type="text"
                   value={keys.googleClientId || ''}
-                  onChange={e => saveKey('googleClientId', e.target.value)}
+                  onChange={e => saveKey('googleClientId', e.target.value.trim())}
                   placeholder="123456789-abc.apps.googleusercontent.com"
                   style={{ width: '100%', background: S.bg, border: `1px solid ${keys.googleClientId ? S.green : S.border}`, color: S.text, borderRadius: 6, padding: '8px 10px', fontFamily: 'monospace', fontSize: 12, boxSizing: 'border-box' }}
                 />
