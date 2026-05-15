@@ -680,7 +680,6 @@ export default function App() {
     { id: 'bosses',   label: 'Bosses',   icon: '💀' },
     { id: 'shop',     label: 'Shop',     icon: '🏪' },
     { id: 'glory',    label: 'Glory',    icon: '🏆' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' },
   ];
 
   const SHOP_CATALOG = [
@@ -702,9 +701,17 @@ export default function App() {
             <div style={{ fontFamily: 'Cinzel Decorative, serif', color: S.gold, fontSize: 15, lineHeight: 1.2 }}>Murky Sea Chronicles</div>
             <div style={{ fontSize: 11, color: S.textDim }}>Valdris · {state.player.name} · {curLevel.title}</div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ color: S.gold, fontFamily: 'Cinzel, serif', fontWeight: 700, fontSize: 14 }}>⚡ Lv {curLevel.level}</div>
-            <div style={{ color: S.gold, fontSize: 12 }}>◈ {state.player.gold}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ color: S.gold, fontFamily: 'Cinzel, serif', fontWeight: 700, fontSize: 14 }}>⚡ Lv {curLevel.level}</div>
+              <div style={{ color: S.gold, fontSize: 12 }}>◈ {state.player.gold}</div>
+            </div>
+            <button onClick={() => set({ activeTab: state.activeTab === 'settings' ? 'warplan' : 'settings' })} style={{
+              background: state.activeTab === 'settings' ? S.gold : 'none',
+              border: `1px solid ${state.activeTab === 'settings' ? S.gold : S.border}`,
+              color: state.activeTab === 'settings' ? S.bg : S.textDim,
+              borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 16, lineHeight: 1,
+            }}>⚙️</button>
           </div>
         </div>
         <Bar pct={xpPct} color={S.gold} height={4} />
