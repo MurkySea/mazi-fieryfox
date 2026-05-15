@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   const apiKey = req.headers['x-novelai-key'] || process.env.NOVELAI_KEY;
   if (!apiKey) return res.status(500).json({ error: 'NOVELAI_KEY not configured' });
 
-  const { prompt, negative_prompt, width = 832, height = 1216, cacheKey } = req.body;
+  const { prompt, negative_prompt, width = 1216, height = 832, cacheKey } = req.body;
 
   if (cacheKey && serverCache.has(cacheKey)) {
     return res.status(200).json({ b64: serverCache.get(cacheKey), mime: 'image/png', cached: true });

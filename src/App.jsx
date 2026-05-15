@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { buildCompanionPrompt, buildNegativePrompt, buildRegionPrompt, buildBossPrompt, portraitKey, regionKey, bossKey } from './prompts.js';
+import { getImg, setImg, clearImgCache } from './cache.js';
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
 
@@ -363,6 +365,17 @@ function Bar({ pct, color = S.gold, height = 4 }) {
   );
 }
 
+function Shimmer({ width = '100%', height = 120, radius = 8 }) {
+  return (
+    <div style={{
+      width, height, borderRadius: radius, flexShrink: 0,
+      background: 'linear-gradient(90deg, #0d1220 0%, #1e2e4a 50%, #0d1220 100%)',
+      backgroundSize: '200% 100%',
+      animation: 'msc-shimmer 1.4s ease-in-out infinite',
+    }} />
+  );
+}
+
 function SectionTitle({ children, dim }) {
   return (
     <div style={{ fontSize: 12, fontFamily: 'Cinzel, serif', letterSpacing: 2, color: dim ? S.textDim : S.gold, marginBottom: 8, marginTop: 4 }}>
@@ -427,12 +440,22 @@ async function uploadPortraitToDrive(dataUrl, filename, token) {
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 
 export default function App() {
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = '@keyframes msc-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }';
+    document.head.appendChild(style);
+    return () => style.remove();
+  }, []);
+
   const [keys, setKeys] = useState(() => {
     try { return JSON.parse(localStorage.getItem('msc_keys') || '{}'); } catch { return {}; }
   });
   const [gToken, setGToken] = useState(null);
   const [driveUploading, setDriveUploading] = useState({});
   const [driveStatus, setDriveStatus] = useState('');
+  const [sceneImages, setSceneImages] = useState({});
+  const [generatingScene, setGeneratingScene] = useState({});
+  const [selectedOutfit, setSelectedOutfit] = useState('combat');
 
   function saveKey(k, v) {
     setKeys(prev => {
@@ -569,34 +592,55 @@ export default function App() {
   }
 
   // ── API: AI Image ─────────────────────────────────────────────────────────
-  async function generateImage(companion) {
+  async function generatePortrait(companion, outfit) {
+    const ot = outfit || selectedOutfit;
+    const cKey = portraitKey(companion, ot);
+    const cached = getImg(cKey);
+    if (cached) {
+      setState(s => ({ ...s, companions: s.companions.map(c => c.id === companion.id ? { ...c, aiImage: cached } : c) }));
+      return;
+    }
     set(s => ({ generatingImage: { ...s.generatingImage, [companion.id]: true }, imageError: { ...s.imageError, [companion.id]: null } }));
     try {
-      const prompt = `anime style portrait, ${companion.race.toLowerCase()} girl, ${companion.hair} hair, ${companion.eyes} eyes, ${companion.body} build, ${companion.class.toLowerCase()} dark fantasy outfit, dramatic lighting, beautiful, detailed, masterpiece`;
-      const imgHeaders = { 'Content-Type': 'application/json' };
-      if (keys.xai) imgHeaders['x-xai-key'] = keys.xai;
-      const res  = await fetch('/api/image', {
-        method: 'POST',
-        headers: imgHeaders,
-        body: JSON.stringify({ prompt, model: 'grok-2-image', n: 1 }),
+      const prompt = buildCompanionPrompt(companion, ot);
+      const negative_prompt = buildNegativePrompt(ot);
+      const headers = { 'Content-Type': 'application/json' };
+      if (keys.novelai) headers['x-novelai-key'] = keys.novelai;
+      const res = await fetch('/api/image', {
+        method: 'POST', headers,
+        body: JSON.stringify({ prompt, negative_prompt, cacheKey: cKey }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
-      const b64 = data?.data?.[0]?.b64_json;
-      const mime = data?.data?.[0]?.mime || 'image/jpeg';
-      if (b64) {
-        const dataUrl = `data:${mime};base64,${b64}`;
-        setState(s => ({
-          ...s,
-          companions: s.companions.map(c => c.id === companion.id ? { ...c, aiImage: dataUrl } : c),
-        }));
-      } else {
-        throw new Error('No image data returned');
-      }
+      const dataUrl = `data:${data.mime || 'image/png'};base64,${data.b64}`;
+      setImg(cKey, dataUrl);
+      setState(s => ({ ...s, companions: s.companions.map(c => c.id === companion.id ? { ...c, aiImage: dataUrl } : c) }));
     } catch (e) {
       set(s => ({ imageError: { ...s.imageError, [companion.id]: e.message } }));
     }
     set(s => ({ generatingImage: { ...s.generatingImage, [companion.id]: false } }));
+  }
+
+  async function generateScene(type, id) {
+    const cKey = type === 'region' ? regionKey(id) : bossKey(id);
+    const cached = getImg(cKey);
+    if (cached) { setSceneImages(p => ({ ...p, [id]: cached })); return; }
+    setGeneratingScene(p => ({ ...p, [id]: true }));
+    try {
+      const prompt = type === 'region' ? buildRegionPrompt(id) : buildBossPrompt(id);
+      const headers = { 'Content-Type': 'application/json' };
+      if (keys.novelai) headers['x-novelai-key'] = keys.novelai;
+      const res = await fetch('/api/scene', {
+        method: 'POST', headers,
+        body: JSON.stringify({ prompt, width: 1216, height: 832, cacheKey: cKey }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error);
+      const dataUrl = `data:${data.mime || 'image/png'};base64,${data.b64}`;
+      setImg(cKey, dataUrl);
+      setSceneImages(p => ({ ...p, [id]: dataUrl }));
+    } catch (e) { console.error('Scene error:', e); }
+    setGeneratingScene(p => ({ ...p, [id]: false }));
   }
 
   // ── API: AI Dialogue ──────────────────────────────────────────────────────
@@ -1006,9 +1050,11 @@ export default function App() {
                   transform: state.selectedCompanion === c.id ? 'scale(1.06)' : 'scale(1)',
                   transition: 'all 0.2s',
                 }}>
-                  {c.aiImage
-                    ? <img src={c.aiImage} alt={c.name} style={{ width: 62, height: 62, borderRadius: '50%', border: `2px solid ${state.selectedCompanion === c.id ? S.gold : S.border}`, objectFit: 'cover' }} />
-                    : <CompanionPortrait companion={c} size={62} />
+                  {state.generatingImage[c.id]
+                    ? <Shimmer width={62} height={62} radius="50%" />
+                    : c.aiImage
+                      ? <img src={c.aiImage} alt={c.name} style={{ width: 62, height: 62, borderRadius: '50%', border: `2px solid ${state.selectedCompanion === c.id ? S.gold : S.border}`, objectFit: 'cover' }} />
+                      : <CompanionPortrait companion={c} size={62} />
                   }
                 </div>
               ))}
