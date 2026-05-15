@@ -651,6 +651,9 @@ export default function App() {
   const [googleClientId, setGoogleClientId] = useState(() => {
     try { return localStorage.getItem('msc_gcid') || ''; } catch { return ''; }
   });
+  const [novelaiKey, setNovelaiKey] = useState(() => {
+    try { return localStorage.getItem('msc_nai_key') || ''; } catch { return ''; }
+  });
   const [apiStatus, setApiStatus] = useState(null); // { novelai, anthropic } from /api/status
   const [gToken, setGToken] = useState(null);
   const [driveUploading, setDriveUploading] = useState({});
@@ -662,6 +665,12 @@ export default function App() {
     const clean = (v || '').replace(/[^\x20-\x7E]/g, '').trim();
     setGoogleClientId(clean);
     try { localStorage.setItem('msc_gcid', clean); } catch {}
+  }
+
+  function saveNovelaiKey(v) {
+    const clean = (v || '').replace(/[^\x20-\x7E]/g, '').trim();
+    setNovelaiKey(clean);
+    try { localStorage.setItem('msc_nai_key', clean); } catch {}
   }
 
   async function checkApiStatus() {
@@ -869,7 +878,7 @@ export default function App() {
       const res = await fetch('/api/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, negative_prompt, cacheKey: cKey }),
+        body: JSON.stringify({ prompt, negative_prompt, cacheKey: cKey, ...(novelaiKey ? { userKey: novelaiKey } : {}) }),
       });
       const text = await res.text();
       let data;
@@ -894,7 +903,7 @@ export default function App() {
       const res = await fetch('/api/scene', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, width: 1216, height: 832, cacheKey: cKey }),
+        body: JSON.stringify({ prompt, width: 1216, height: 832, cacheKey: cKey, ...(novelaiKey ? { userKey: novelaiKey } : {}) }),
       });
       const sText = await res.text();
       let data;
@@ -1874,7 +1883,7 @@ export default function App() {
             <div style={card}>
               <SectionTitle>SERVER API STATUS</SectionTitle>
               <p style={{ fontSize: 12, color: S.textDim, marginTop: 0, marginBottom: 14 }}>
-                API keys are stored securely as Vercel environment variables — never on your device.
+                Server-side API keys configured via Netlify environment variables.
                 Tap Check to verify the server can reach each service.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
@@ -1903,15 +1912,38 @@ export default function App() {
               </div>
               <Btn ghost small onClick={checkApiStatus}>Check Status</Btn>
               {apiStatus?.error && (
-                <div style={{ fontSize: 11, color: S.red, marginTop: 8 }}>Could not reach /api/status — check Vercel deployment.</div>
+                <div style={{ fontSize: 11, color: S.red, marginTop: 8 }}>Could not reach /api/status — check Netlify deployment.</div>
               )}
             </div>
 
-            {/* Vercel setup instructions */}
+            {/* Image Generator API Key */}
             <div style={card}>
-              <SectionTitle>VERCEL SETUP</SectionTitle>
+              <SectionTitle>IMAGE GENERATOR API KEY</SectionTitle>
               <p style={{ fontSize: 12, color: S.textDim, marginTop: 0, marginBottom: 12 }}>
-                To enable portrait generation and companion dialogue, add these environment variables in your Vercel project dashboard under Settings → Environment Variables:
+                Enter your NovelAI bearer token to enable portrait and scene generation. Your key is saved locally on this device and sent securely to the server. Leave blank to use the server's configured key.
+              </p>
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: S.text, marginBottom: 6, fontFamily: 'Cinzel, serif' }}>NovelAI Bearer Token</div>
+                <input
+                  type="password"
+                  value={novelaiKey}
+                  onChange={e => saveNovelaiKey(e.target.value)}
+                  placeholder="pst-••••••••••••••••••••••••••••••••"
+                  style={{ width: '100%', background: S.bg, border: `1px solid ${novelaiKey ? S.green : S.border}`, color: S.text, borderRadius: 6, padding: '8px 10px', fontFamily: 'monospace', fontSize: 12, boxSizing: 'border-box' }}
+                />
+                {novelaiKey && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Key saved — portraits and scenes will use your key.</div>}
+                {!novelaiKey && <div style={{ fontSize: 11, color: S.textDim, marginTop: 4 }}>Get your key at novelai.net → Account → Bearer Token</div>}
+              </div>
+              {novelaiKey && (
+                <Btn ghost small color={S.red} onClick={() => saveNovelaiKey('')} style={{ marginTop: 4 }}>Clear Key</Btn>
+              )}
+            </div>
+
+            {/* Netlify setup instructions */}
+            <div style={card}>
+              <SectionTitle>NETLIFY SETUP</SectionTitle>
+              <p style={{ fontSize: 12, color: S.textDim, marginTop: 0, marginBottom: 12 }}>
+                To configure server-side keys for all users, add these environment variables in your Netlify project dashboard under Site configuration → Environment variables:
               </p>
               {[
                 { name: 'NOVELAI_KEY',   hint: 'Your NovelAI bearer token (starts with pst-)' },
