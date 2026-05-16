@@ -68,6 +68,25 @@ const RARITY_COLORS = {
   common: '#8a7a60', uncommon: '#27ae60', rare: '#2980b9', epic: '#8e44ad', legendary: '#f0c040',
 };
 
+const RARITY_DATA = {
+  common:    { weight: 60, color: '#8a7a60', stars: 1, label: 'Common',    crystalBonus: 3 },
+  uncommon:  { weight: 25, color: '#27ae60', stars: 2, label: 'Uncommon',  crystalBonus: 10 },
+  rare:      { weight: 10, color: '#2980b9', stars: 3, label: 'Rare',      crystalBonus: 30 },
+  epic:      { weight: 4,  color: '#8e44ad', stars: 4, label: 'Epic',      crystalBonus: 80 },
+  legendary: { weight: 1,  color: '#f0c040', stars: 5, label: 'Legendary', crystalBonus: 200 },
+};
+
+const MOODS = {
+  ecstatic: { emoji: '✨', color: '#f0c040', label: 'Ecstatic', tone: 'speaks with rare elation, barely containing her excitement to see you' },
+  happy:    { emoji: '🌸', color: '#e91e8c', label: 'Happy',    tone: 'warm and bright, clearly glad you showed up' },
+  neutral:  { emoji: '⚔️', color: '#7a6a52', label: 'Neutral',  tone: 'composed and baseline, present but unaffected' },
+  distant:  { emoji: '🌙', color: '#2980b9', label: 'Distant',  tone: 'withdrawn, giving shorter answers than usual, something is clearly off' },
+  cold:     { emoji: '❄️', color: '#c0392b', label: 'Cold',     tone: 'hurt by your absence, guarded and clipped, not letting you in easily' },
+};
+
+const PULL_COST_SINGLE = 160;
+const PULL_COST_TEN    = 1440;
+
 const ITEMS = [
   { id: 'iron_blade',     name: 'Iron Blade of the Abyss',  type: 'weapon',     rarity: 'common',    desc: '+10% XP from quests',              cost: 150,  effect: { xpMultiplier: 1.1 } },
   { id: 'shadow_cloak',   name: 'Shadow Cloak',              type: 'armor',      rarity: 'uncommon',  desc: '+15% gold from all sources',        cost: 280,  effect: { goldMultiplier: 1.15 } },
@@ -167,18 +186,49 @@ function randItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function generateCompanion(existingNames = []) {
+function rollRarity(pityCount) {
+  if (pityCount >= 99) return 'legendary';
+  const isSoftPity = pityCount >= 74;
+  const roll = Math.random() * 100;
+  if (isSoftPity) {
+    if (roll < 5)  return 'legendary';
+    if (roll < 14) return 'epic';
+    if (roll < 30) return 'rare';
+    if (roll < 55) return 'uncommon';
+    return 'common';
+  }
+  if (roll < 1)  return 'legendary';
+  if (roll < 5)  return 'epic';
+  if (roll < 15) return 'rare';
+  if (roll < 40) return 'uncommon';
+  return 'common';
+}
+
+function getMood(rituals) {
+  const today     = todayStr();
+  const yesterday = yesterdayStr();
+  const maxStreak = Math.max(...rituals.map(r => r.streak), 0);
+  const doneToday = rituals.some(r => r.lastDone === today);
+  const doneYest  = rituals.some(r => r.lastDone === yesterday);
+  if (!doneToday && !doneYest) return 'cold';
+  if (!doneToday)              return 'distant';
+  if (maxStreak >= 14)         return 'ecstatic';
+  if (maxStreak >= 5)          return 'happy';
+  return 'neutral';
+}
+
+function generateCompanion(existingNames = [], rarity = 'common') {
   let name = `${randItem(FIRST_NAMES)} ${randItem(LAST_NAMES)}`;
   if (existingNames.includes(name)) name += ' II';
   return {
-    id: `companion_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+    id:          `companion_${Date.now()}_${Math.random().toString(36).slice(2)}`,
     name,
-    race:       randItem(RACES),
-    class:      randItem(COMPANION_CLASSES),
-    backstory:  `A ${randItem(RACES).toLowerCase()} drawn to Valdris by fate and the pull of something ancient.`,
-    body:       randItem(BODY_TYPES),
-    hair:       randItem(HAIR_COLORS),
-    eyes:       randItem(EYE_COLORS),
+    race:        randItem(RACES),
+    class:       randItem(COMPANION_CLASSES),
+    backstory:   `A ${randItem(RACES).toLowerCase()} drawn to Valdris by fate and the pull of something ancient.`,
+    body:        randItem(BODY_TYPES),
+    hair:        randItem(HAIR_COLORS),
+    eyes:        randItem(EYE_COLORS),
     flirtStyle:  randItem(FLIRT_STYLES),
     personality: 'Enigmatic and fiercely independent, yet drawn to strength and purpose.',
     intimacy:    0,
@@ -186,6 +236,7 @@ function generateCompanion(existingNames = []) {
     outfit:      'combat',
     aiImage:     null,
     appreciates: [...SKILLS].sort(() => Math.random() - 0.5).slice(0, 2),
+    rarity,
   };
 }
 
@@ -207,6 +258,7 @@ const KIRA = {
   outfit:      'combat',
   aiImage:     null,
   appreciates: ['Discipline', 'Fitness'],
+  rarity:      'legendary',
 };
 
 // ─── INITIAL STATE ────────────────────────────────────────────────────────────
@@ -214,12 +266,13 @@ const KIRA = {
 function buildInitial() {
   return {
     player: {
-      name:   'Murky Sea',
-      class:  'Sovereign Architect',
-      level:  1,
-      xp:     0,
-      gold:   200,
-      skills: { Faith: 0, Fitness: 0, Business: 0, Relations: 0, Discipline: 0, Knowledge: 0 },
+      name:      'Murky Sea',
+      class:     'Sovereign Architect',
+      level:     1,
+      xp:        0,
+      gold:      200,
+      crystals:  320,
+      skills:    { Faith: 0, Fitness: 0, Business: 0, Relations: 0, Discipline: 0, Knowledge: 0 },
     },
     quests: [
       { id: 'q1', text: 'Define the 3 most important moves for this week', type: 'priority', xp: 50, gold: 15, done: false, skill: 'Business' },
@@ -247,6 +300,8 @@ function buildInitial() {
       bossesDefeated:   0,
       maxStreak:        0,
       maxIntimacy:      1,
+      pityCount:        0,
+      totalPulls:       0,
     },
     achievements:       [],
     activeTab:          'warplan',
@@ -841,6 +896,10 @@ export default function App() {
     }));
   }
 
+  function gainCrystals(amount) {
+    setState(s => ({ ...s, player: { ...s.player, crystals: (s.player.crystals || 0) + amount } }));
+  }
+
   function checkAchievements(extraStats = {}) {
     setState(s => {
       const check = { ...s.stats, ...extraStats, level: getLevel(s.player.xp).level };
@@ -919,7 +978,9 @@ export default function App() {
     const hour = new Date().getHours();
     const timeOfDay = hour < 6 ? 'late night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
     const outfit = outfitForIntimacy(companion.intimacy);
-    const system = buildDialoguePrompt(lb, state.player.skills, partyNames, outfit, timeOfDay, companion.intimacy);
+    const mood = getMood(state.rituals);
+    const moodLine = `\n\nCURRENT MOOD: ${MOODS[mood].label} — ${MOODS[mood].tone}.`;
+    const system = buildDialoguePrompt(lb, state.player.skills, partyNames, outfit, timeOfDay, companion.intimacy) + moodLine;
     const userMsg = context || `Greet Murky Sea. It is ${timeOfDay} on ${new Date().toLocaleDateString('en-US', { weekday: 'long' })}.`;
     const history = conversationHistory[companion.id] || [];
     const messages = [...history.slice(-14), { role: 'user', content: userMsg }];
@@ -967,6 +1028,7 @@ export default function App() {
     gainXP(q.xp);
     gainGold(q.gold);
     gainSkill(q.skill);
+    gainCrystals(q.type === 'priority' ? 15 : 8);
     setState(s => ({
       ...s,
       quests: s.quests.map(x => x.id === q.id ? { ...x, done: true } : x),
@@ -1007,6 +1069,7 @@ export default function App() {
     gainXP(streakXP);
     gainGold(streakGold);
     gainSkill(r.skill);
+    gainCrystals(5 + Math.floor(newStreak / 3) * 2);
     setState(s => ({
       ...s,
       rituals: s.rituals.map(x => x.id === r.id ? { ...x, streak: newStreak, lastDone: today } : x),
@@ -1057,6 +1120,44 @@ export default function App() {
     setTimeout(() => generatePortrait(newC, 'combat'), 100);
   }
 
+  function doPull(count) {
+    const cost = count === 1 ? PULL_COST_SINGLE : PULL_COST_TEN;
+    if ((state.player.crystals || 0) < cost) return;
+    const names = state.companions.map(c => c.name);
+    const newCompanions = [];
+    let pity = state.stats.pityCount || 0;
+    let guaranteedUncommon = count === 10;
+
+    for (let i = 0; i < count; i++) {
+      pity++;
+      let rarity = rollRarity(pity);
+      if (guaranteedUncommon && i === count - 1) {
+        const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+        const idx = rarities.indexOf(rarity);
+        if (idx < 1) rarity = 'uncommon';
+        guaranteedUncommon = false;
+      }
+      if (rarity !== 'common') pity = 0;
+      const newC = generateCompanion(names, rarity);
+      names.push(newC.name);
+      newCompanions.push(newC);
+      saveLorebook(newC.id, buildLorebookEntry(newC));
+    }
+
+    setState(s => ({
+      ...s,
+      player: { ...s.player, crystals: (s.player.crystals || 0) - cost },
+      companions: [...s.companions, ...newCompanions],
+      selectedCompanion: newCompanions[newCompanions.length - 1].id,
+      stats: { ...s.stats, pityCount: pity, totalPulls: (s.stats.totalPulls || 0) + count },
+      lastPulls: newCompanions.map(c => ({ name: c.name, rarity: c.rarity, race: c.race })),
+    }));
+
+    setTimeout(() => {
+      newCompanions.forEach((c, i) => setTimeout(() => generatePortrait(c, 'combat'), i * 200));
+    }, 50);
+  }
+
   // ── Boss actions ──────────────────────────────────────────────────────────
   function attackBoss(bossId) {
     const dmg = Math.round((20 + Math.random() * 20) * fx.bossDamage);
@@ -1068,11 +1169,12 @@ export default function App() {
       let newPlayer    = { ...s.player };
       let newStats     = { ...s.stats };
       if (justKilled) {
-        newPlayer.xp    += boss.reward.xp;
-        newPlayer.gold  += boss.reward.gold;
-        newPlayer.level  = getLevel(newPlayer.xp).level;
-        newPlayer.skills = { ...newPlayer.skills, [boss.skill]: (newPlayer.skills[boss.skill] || 0) + 3 };
-        newStats.bossesDefeated += 1;
+        newPlayer.xp       += boss.reward.xp;
+        newPlayer.gold     += boss.reward.gold;
+        newPlayer.crystals  = (newPlayer.crystals || 0) + 50;
+        newPlayer.level     = getLevel(newPlayer.xp).level;
+        newPlayer.skills    = { ...newPlayer.skills, [boss.skill]: (newPlayer.skills[boss.skill] || 0) + 3 };
+        newStats.bossesDefeated  += 1;
         newStats.totalGoldEarned += boss.reward.gold;
       }
       return {
@@ -1163,7 +1265,10 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ textAlign: 'right' }}>
               <div style={{ color: S.gold, fontFamily: 'Cinzel, serif', fontWeight: 700, fontSize: 14 }}>⚡ Lv {curLevel.level}</div>
-              <div style={{ color: S.gold, fontSize: 12 }}>◈ {state.player.gold}</div>
+              <div style={{ fontSize: 12, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <span style={{ color: S.gold }}>◈ {state.player.gold}</span>
+                <span style={{ color: '#a78bfa' }}>💎 {state.player.crystals || 0}</span>
+              </div>
             </div>
             <button onClick={() => set({ activeTab: state.activeTab === 'settings' ? 'warplan' : 'settings' })} style={{
               background: state.activeTab === 'settings' ? S.gold : 'none',
@@ -1249,7 +1354,7 @@ export default function App() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, textDecoration: q.done ? 'line-through' : 'none' }}>{q.text}</div>
                   <div style={{ fontSize: 11, color: S.textDim, marginTop: 2 }}>
-                    <span style={{ color: SKILL_COLORS[q.skill] }}>{q.skill}</span> · ⚡{q.xp} XP · ◈{q.gold}
+                    <span style={{ color: SKILL_COLORS[q.skill] }}>{q.skill}</span> · ⚡{q.xp} XP · ◈{q.gold} · <span style={{ color: '#a78bfa' }}>💎 15</span>
                   </div>
                 </div>
                 <div onClick={() => deleteQuest(q.id)} style={{ color: S.textDim, cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>×</div>
@@ -1268,7 +1373,7 @@ export default function App() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, textDecoration: q.done ? 'line-through' : 'none' }}>{q.text}</div>
                   <div style={{ fontSize: 11, color: S.textDim, marginTop: 2 }}>
-                    <span style={{ color: SKILL_COLORS[q.skill] }}>{q.skill}</span> · ⚡{q.xp} XP · ◈{q.gold}
+                    <span style={{ color: SKILL_COLORS[q.skill] }}>{q.skill}</span> · ⚡{q.xp} XP · ◈{q.gold} · <span style={{ color: '#a78bfa' }}>💎 8</span>
                   </div>
                 </div>
                 <div onClick={() => deleteQuest(q.id)} style={{ color: S.textDim, cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>×</div>
@@ -1323,6 +1428,7 @@ export default function App() {
                           <span style={{ color: SKILL_COLORS[r.skill] }}>{r.skill}</span>
                           <span>🔥 {r.streak}d streak</span>
                           <span>⚡ {streakXP} XP</span>
+                          <span style={{ color: '#a78bfa' }}>💎 {5 + Math.floor(r.streak / 3) * 2}</span>
                         </div>
                       </div>
                     </div>
@@ -1339,7 +1445,7 @@ export default function App() {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <h2 style={{ fontFamily: 'Cinzel, serif', color: S.gold, margin: 0, fontSize: 18 }}>💎 My Room</h2>
-              <Btn ghost small onClick={summonCompanion} disabled={state.player.gold < 300}>Summon ◈300</Btn>
+              <div style={{ fontSize: 12, color: '#a78bfa', fontFamily: 'Cinzel, serif' }}>💎 {state.player.crystals || 0}</div>
             </div>
 
             {/* ── Companion Card Carousel ── */}
@@ -1380,18 +1486,33 @@ export default function App() {
                       {/* Top gradient */}
                       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 70,
                         background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%)' }} />
-                      {/* Name + heart badge */}
+                      {/* Name + badges */}
                       <div style={{ position: 'absolute', top: 7, left: 8, right: 8 }}>
                         <div style={{ fontSize: 11, fontFamily: 'Cinzel, serif', color: intData.color,
                           fontWeight: 700, textShadow: '0 1px 5px rgba(0,0,0,1)', lineHeight: 1.2 }}>
                           {c.name.split(' ')[0]}
                         </div>
-                        <div style={{ marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 3,
-                          background: 'rgba(0,0,0,0.55)', border: `1px solid ${intData.color}55`,
-                          borderRadius: 20, padding: '2px 7px' }}>
-                          <span style={{ fontSize: 9, color: intData.color }}>❤</span>
-                          <span style={{ fontSize: 10, color: '#fff', fontWeight: 700 }}>{c.intimacy}</span>
-                          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>/{INTIMACY.length - 1}</span>
+                        <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                            background: 'rgba(0,0,0,0.55)', border: `1px solid ${intData.color}55`,
+                            borderRadius: 20, padding: '2px 7px' }}>
+                            <span style={{ fontSize: 9, color: intData.color }}>❤</span>
+                            <span style={{ fontSize: 10, color: '#fff', fontWeight: 700 }}>{c.intimacy}</span>
+                          </div>
+                          {(() => {
+                            const mood = getMood(state.rituals);
+                            const m = MOODS[mood];
+                            return (
+                              <div style={{ background: 'rgba(0,0,0,0.55)', borderRadius: 20, padding: '2px 6px', fontSize: 10 }}
+                                title={m.label}>{m.emoji}</div>
+                            );
+                          })()}
+                        </div>
+                        {/* Rarity stars */}
+                        <div style={{ marginTop: 3 }}>
+                          {Array.from({ length: RARITY_DATA[c.rarity || 'common'].stars }).map((_, i) => (
+                            <span key={i} style={{ fontSize: 9, color: RARITY_DATA[c.rarity || 'common'].color }}>★</span>
+                          ))}
                         </div>
                       </div>
                       {/* Selected glow overlay */}
@@ -1482,6 +1603,21 @@ export default function App() {
             {/* ── Selected companion details ── */}
             {selComp && (
               <>
+                {/* Mood banner */}
+                {(() => {
+                  const mood = getMood(state.rituals);
+                  const m = MOODS[mood];
+                  return (
+                    <div style={{ ...card, marginBottom: 10, borderColor: `${m.color}55`, background: `${m.color}0e`, display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ fontSize: 22 }}>{m.emoji}</div>
+                      <div>
+                        <div style={{ fontFamily: 'Cinzel, serif', fontSize: 12, color: m.color }}>{selComp.name.split(' ')[0]} is {m.label}</div>
+                        <div style={{ fontSize: 11, color: S.textDim, fontStyle: 'italic' }}>{m.tone.slice(0, 60)}…</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Portrait status */}
                 {state.imageError?.[selComp.id] && (
                   <div style={{ ...card, marginBottom: 10, background: '#1a0808', borderColor: S.red }}>
@@ -1552,6 +1688,103 @@ export default function App() {
                 )}
               </>
             )}
+
+            {/* ── Summon Hall ── */}
+            <div style={{ marginTop: 24 }}>
+              <SectionTitle>SUMMON HALL</SectionTitle>
+              {/* Pity counter */}
+              <div style={{ ...card, background: 'linear-gradient(135deg, #0d0820, #120a2a)', borderColor: '#2a1a4a', marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontFamily: 'Cinzel, serif', color: '#a78bfa', fontSize: 14, marginBottom: 2 }}>✦ Eternal Banner</div>
+                    <div style={{ fontSize: 11, color: S.textDim }}>Guaranteed ★★★ at 10 pulls · Legendary at 100</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 10, color: S.textDim }}>Pity</div>
+                    <div style={{ fontFamily: 'Cinzel, serif', fontSize: 16, color: (state.stats.pityCount || 0) > 70 ? S.gold : '#a78bfa' }}>
+                      {state.stats.pityCount || 0}/100
+                    </div>
+                  </div>
+                </div>
+                {/* Pity bar */}
+                <div style={{ height: 4, background: '#1a0e30', borderRadius: 2, marginBottom: 12, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: 2,
+                    width: `${Math.min((state.stats.pityCount || 0), 100)}%`,
+                    background: (state.stats.pityCount || 0) > 70
+                      ? 'linear-gradient(90deg, #a78bfa, #f0c040)'
+                      : 'linear-gradient(90deg, #4a1d96, #a78bfa)',
+                    transition: 'width 0.4s',
+                  }} />
+                </div>
+                {/* Rates */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+                  {Object.entries(RARITY_DATA).map(([key, r]) => (
+                    <div key={key} style={{ fontSize: 10, color: r.color, background: `${r.color}18`, borderRadius: 4, padding: '2px 7px', border: `1px solid ${r.color}33` }}>
+                      {'★'.repeat(r.stars)} {r.weight}%
+                    </div>
+                  ))}
+                </div>
+                {/* Pull buttons */}
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    onClick={() => doPull(1)}
+                    disabled={(state.player.crystals || 0) < PULL_COST_SINGLE}
+                    style={{
+                      flex: 1, padding: '12px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
+                      background: (state.player.crystals || 0) >= PULL_COST_SINGLE
+                        ? 'linear-gradient(135deg, #4a1d96, #7c3aed)'
+                        : '#1a1a2e',
+                      color: (state.player.crystals || 0) >= PULL_COST_SINGLE ? '#fff' : '#555',
+                      fontFamily: 'Cinzel, serif', fontSize: 12, fontWeight: 700,
+                      opacity: (state.player.crystals || 0) < PULL_COST_SINGLE ? 0.5 : 1,
+                    }}>
+                    <div>× 1 Pull</div>
+                    <div style={{ fontSize: 10, marginTop: 2, opacity: 0.8 }}>💎 {PULL_COST_SINGLE}</div>
+                  </button>
+                  <button
+                    onClick={() => doPull(10)}
+                    disabled={(state.player.crystals || 0) < PULL_COST_TEN}
+                    style={{
+                      flex: 1, padding: '12px 0', borderRadius: 10, border: '1px solid #7c3aed44', cursor: 'pointer',
+                      background: (state.player.crystals || 0) >= PULL_COST_TEN
+                        ? 'linear-gradient(135deg, #7c3aed, #a78bfa)'
+                        : '#1a1a2e',
+                      color: (state.player.crystals || 0) >= PULL_COST_TEN ? '#fff' : '#555',
+                      fontFamily: 'Cinzel, serif', fontSize: 12, fontWeight: 700,
+                      opacity: (state.player.crystals || 0) < PULL_COST_TEN ? 0.5 : 1,
+                      position: 'relative',
+                    }}>
+                    <div style={{ position: 'absolute', top: -8, right: 8, background: '#f0c040', color: '#070912', fontSize: 9, fontFamily: 'Cinzel, serif', padding: '2px 6px', borderRadius: 8 }}>BONUS</div>
+                    <div>× 10 Pull</div>
+                    <div style={{ fontSize: 10, marginTop: 2, opacity: 0.8 }}>💎 {PULL_COST_TEN} · ★★★ guaranteed</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Last pulls result */}
+              {state.lastPulls?.length > 0 && (
+                <div style={{ ...card, marginBottom: 0 }}>
+                  <SectionTitle>LAST SUMMON</SectionTitle>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {state.lastPulls.map((p, i) => {
+                      const rd = RARITY_DATA[p.rarity] || RARITY_DATA.common;
+                      return (
+                        <div key={i} style={{
+                          padding: '5px 10px', borderRadius: 8,
+                          background: `${rd.color}18`, border: `1px solid ${rd.color}55`,
+                          fontSize: 11,
+                        }}>
+                          <div style={{ color: rd.color, fontFamily: 'Cinzel, serif', fontSize: 10 }}>{'★'.repeat(rd.stars)}</div>
+                          <div style={{ color: S.text }}>{p.name.split(' ')[0]}</div>
+                          <div style={{ color: S.textDim, fontSize: 10 }}>{p.race}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
