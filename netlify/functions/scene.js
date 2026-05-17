@@ -8,13 +8,13 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers };
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
 
+  const key = process.env.NOVELAI_KEY;
+  if (!key) return { statusCode: 500, headers, body: JSON.stringify({ error: 'NOVELAI_KEY env var not set' }) };
+
   let body;
   try { body = JSON.parse(event.body || '{}'); } catch { return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON' }) }; }
 
-  const key = process.env.NOVELAI_KEY || body.userKey;
-  if (!key) return { statusCode: 500, headers, body: JSON.stringify({ error: 'No NovelAI API key configured. Add NOVELAI_KEY to environment variables or enter your key in Settings.' }) };
-
-  const { prompt, negative_prompt, width = 1216, height = 832 } = body;
+  const { prompt, negative_prompt, width = 768, height = 512 } = body;
   if (!prompt) return { statusCode: 400, headers, body: JSON.stringify({ error: 'prompt required' }) };
 
   try {
@@ -23,11 +23,11 @@ exports.handler = async (event) => {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         input: prompt,
-        model: 'nai-diffusion-4-5-full',
+        model: 'nai-diffusion-3',
         action: 'generate',
         parameters: {
-          width, height, scale: 6, sampler: 'k_euler_ancestral', steps: 28, n_samples: 1,
-          ucPreset: 0, qualityToggle: true, variety_boost: true, sm: false, sm_dyn: false,
+          width, height, scale: 6, sampler: 'k_euler_ancestral', steps: 20, n_samples: 1,
+          ucPreset: 0, qualityToggle: true, sm: false, sm_dyn: false,
           negative_prompt: negative_prompt || NAI_NEG,
         },
       }),
